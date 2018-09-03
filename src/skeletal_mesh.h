@@ -38,7 +38,6 @@ public:
 	SkeletalMesh();
 	~SkeletalMesh();
 	void bind_vao();
-	int32_t find_joint_index(const std::string& channel_name);
 
 	inline uint32_t raw_bone_count() { return m_raw_bone_count; }
 	inline Skeleton* skeleton() { return m_skeletal; }

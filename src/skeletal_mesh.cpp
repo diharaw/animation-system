@@ -19,8 +19,3 @@ void SkeletalMesh::bind_vao()
 {
 
 }
-
-int32_t SkeletalMesh::find_joint_index(const std::string& channel_name)
-{
-
-}
