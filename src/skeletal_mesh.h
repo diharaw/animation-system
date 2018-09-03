@@ -1,6 +1,6 @@
 #pragma once
 
-#include "animation.h"
+#include "skeleton.h"
 #include <ogl.h>
 
 struct SkeletalVertex
@@ -23,20 +23,6 @@ struct SkeletalColoredVertex
 	glm::vec4  bone_weights;
 };
 
-struct Joint
-{
-	std::string name;
-	glm::mat4   global_transform;
-	glm::mat4	offset_transform;
-	int32_t		parent_index;
-};
-
-struct Skeleton
-{
-	uint16_t		   num_joints;
-	std::vector<Joint> joints;
-};
-
 struct SubMesh
 {
 	uint16_t num_indices = 0;
@@ -47,17 +33,20 @@ struct SubMesh
 class SkeletalMesh
 {
 public:
-	static SkeletalMesh* load(const std::string& name);
+	static SkeletalMesh* load(const std::string& name, Skeleton* skeleton = nullptr);
 
 	SkeletalMesh();
 	~SkeletalMesh();
 	void bind_vao();
 	int32_t find_joint_index(const std::string& channel_name);
+
 	inline uint32_t raw_bone_count() { return m_raw_bone_count; }
+	inline Skeleton* skeleton() { return m_skeletal; }
 
 private:
 	dw::Buffer*		 m_ibo;
 	dw::Buffer*		 m_vbo;
 	dw::VertexArray* m_vao;
 	uint32_t		 m_raw_bone_count;
+	Skeleton*		 m_skeletal;
 };
