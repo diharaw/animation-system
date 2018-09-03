@@ -36,12 +36,12 @@ struct PoseTransforms
 	DW_ALIGNED(16) glm::mat4 transforms[MAX_BONES];
 };
 
-class SkeletalMesh;
+class Skeleton;
 
 // Contains an array of Channels.
 struct Animation
 {
-	static Animation* load(const std::string& name, SkeletalMesh* mesh);
+	static Animation* load(const std::string& name, Skeleton* skeleton);
 
 	std::string					  name;
 	uint32_t					  keyframe_count;
