@@ -12,6 +12,7 @@
 // Contains the translation, rotation and scale of a single bone.
 struct Keyframe
 {
+	double	  time;
 	glm::vec3 translation;
 	glm::quat rotation;
 	glm::vec3 scale;
@@ -47,4 +48,6 @@ struct Animation
 	uint32_t					  keyframe_count;
 	std::vector<AnimationChannel> channels;
 	double						  duration;
+	double						  duration_in_ticks;
+	double						  ticks_per_second;
 };

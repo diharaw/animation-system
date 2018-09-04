@@ -30,6 +30,8 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 	output_animation->channels.resize(skeleton->num_raw_bones());
 	output_animation->name = std::string(animation->mName.C_Str());
 	output_animation->duration = animation->mDuration / animation->mTicksPerSecond;
+	output_animation->duration_in_ticks = animation->mDuration;
+	output_animation->ticks_per_second = animation->mTicksPerSecond;
 	output_animation->keyframe_count = animation->mChannels[0]->mNumPositionKeys;
 
 	for (int i = 0; i < scene->mAnimations[0]->mNumChannels; i++)
@@ -45,6 +47,8 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 
 			for (int j = 0; j < channel->mNumPositionKeys; j++)
 			{
+				output_animation->channels[joint_index].keyframes[j].time = channel->mPositionKeys[j].mTime;
+
 				output_animation->channels[joint_index].keyframes[j].translation = glm::vec3(channel->mPositionKeys[j].mValue.x,
 					channel->mPositionKeys[j].mValue.y,
 					channel->mPositionKeys[j].mValue.z);
