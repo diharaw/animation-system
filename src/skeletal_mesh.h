@@ -2,6 +2,7 @@
 
 #include "skeleton.h"
 #include <ogl.h>
+#include <memory>
 
 struct SkeletalVertex
 {
@@ -42,9 +43,12 @@ public:
 	inline Skeleton* skeleton() { return m_skeleton; }
 
 private:
-	dw::Buffer*						   m_ibo;
-	dw::Buffer*						   m_vbo;
-	dw::VertexArray*				   m_vao;
+	void create_gpu_objects();
+
+private:
+	std::unique_ptr<dw::IndexBuffer>   m_ibo;
+	std::unique_ptr<dw::VertexBuffer>  m_vbo;
+	std::unique_ptr<dw::VertexArray>   m_vao;
 	std::vector<SubMesh>			   m_sub_meshes;
 	std::vector<SkeletalVertex>		   m_vertices;
 	std::vector<SkeletalColoredVertex> m_color_vertices;

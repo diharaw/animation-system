@@ -2,13 +2,19 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
-
+#include "logger.h"
 
 SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 {
 	const aiScene* scene;
 	Assimp::Importer importer;
 	scene = importer.ReadFile(name, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
+
+	if (!scene)
+	{
+		DW_LOG_ERROR("Failed to load Skeletal Mesh in file : " + name);
+		return nullptr;
+	}
 
 	SkeletalMesh* skeletal_mesh = new SkeletalMesh();
 
@@ -107,6 +113,8 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 			}
 		}
 	}
+
+	skeletal_mesh->create_gpu_objects();
 }
 
 SkeletalMesh::SkeletalMesh()
@@ -121,5 +129,70 @@ SkeletalMesh::~SkeletalMesh()
 
 void SkeletalMesh::bind_vao()
 {
+	m_vao->bind();
+}
 
+void SkeletalMesh::create_gpu_objects()
+{
+	if (m_has_vertex_colors)
+	{
+		// Create vertex buffer.
+		m_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalColoredVertex) * m_color_vertices.size(), &m_color_vertices[0]);
+
+		if (!m_vbo)
+			DW_LOG_ERROR("Failed to create Vertex Buffer");
+	}
+	else
+	{
+		// Create vertex buffer.
+		m_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalVertex) * m_vertices.size(), &m_vertices[0]);
+
+		if (!m_vbo)
+			DW_LOG_ERROR("Failed to create Index Buffer");
+	}
+
+	// Create index buffer.
+	m_ibo = std::make_unique<dw::IndexBuffer>(GL_STATIC_DRAW, sizeof(uint32_t) * m_indices.size(), &m_indices[0]);
+
+	if (!m_ibo)
+		DW_LOG_ERROR("Failed to create Index Buffer");
+
+	if (m_has_vertex_colors)
+	{
+		// Declare vertex attributes.
+		dw::VertexAttrib attribs[] =
+		{
+			{ 3, GL_FLOAT, false, 0 },
+			{ 2, GL_FLOAT, false, offsetof(SkeletalColoredVertex, texcoord) },
+			{ 3, GL_FLOAT, false, offsetof(SkeletalColoredVertex, normal) },
+			{ 4, GL_FLOAT, false, offsetof(SkeletalColoredVertex, color) },
+			{ 4, GL_INT, false, offsetof(SkeletalColoredVertex, bone_indices) },
+			{ 4, GL_FLOAT, false, offsetof(SkeletalColoredVertex, bone_weights) }
+		};
+
+		// Create vertex array.
+		m_vao = std::make_unique<dw::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalColoredVertex), 6, attribs);
+
+		if (!m_vao)
+			DW_LOG_ERROR("Failed to create Vertex Array");
+	}
+	else
+	{
+		// Declare vertex attributes.
+		dw::VertexAttrib attribs[] =
+		{
+			{ 3, GL_FLOAT, false, 0 },
+			{ 2, GL_FLOAT, false, offsetof(SkeletalVertex, texcoord) },
+			{ 3, GL_FLOAT, false, offsetof(SkeletalVertex, normal) },
+			{ 3, GL_FLOAT, false, offsetof(SkeletalVertex, tangent) },
+			{ 4, GL_INT, false, offsetof(SkeletalVertex, bone_indices) },
+			{ 4, GL_FLOAT, false, offsetof(SkeletalVertex, bone_weights) }
+		};
+
+		// Create vertex array.
+		m_vao = std::make_unique<dw::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalVertex), 6, attribs);
+
+		if (!m_vao)
+			DW_LOG_ERROR("Failed to create Vertex Array");
+	}
 }
