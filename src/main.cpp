@@ -55,7 +55,7 @@ protected:
         update_camera();
         
         // Render scene.
-        render_scene();
+		render_skeletal_meshes();
         
         // Render debug draw.
         m_debug_draw.render(nullptr, m_width, m_height, m_debug_mode ? m_debug_camera->m_view_projection : m_main_camera->m_view_projection);
@@ -134,8 +134,8 @@ private:
 	bool create_shaders()
 	{
 		// Create general shaders
-        m_vs = std::make_unique<dw::Shader>(GL_VERTEX_SHADER, nullptr);
-		m_fs = std::make_unique<dw::Shader>(GL_FRAGMENT_SHADER, nullptr);
+		m_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/vs.glsl"));
+		m_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/fs.glsl"));
 
 		if (!m_vs || !m_fs)
 		{
@@ -153,13 +153,13 @@ private:
 			return false;
 		}
         
-        m_program->uniform_block_binding("GlobalUniforms", 0);
-        m_program->uniform_block_binding("ObjectUniforms", 1);
+        m_program->uniform_block_binding("GlobalUBO", 0);
+        m_program->uniform_block_binding("ObjectUBO", 1);
         
         // Create Animation shaders
-        m_anim_vs = std::make_unique<dw::Shader>(GL_VERTEX_SHADER, nullptr);
-		m_anim_fs = std::make_unique<dw::Shader>(GL_FRAGMENT_SHADER, nullptr);
-        
+		m_anim_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/skinning_vs.glsl"));
+		m_anim_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/skinning_fs.glsl"));
+
         if (!m_anim_vs || !m_anim_fs)
         {
             DW_LOG_FATAL("Failed to create Animation Shaders");
@@ -167,8 +167,8 @@ private:
         }
         
         // Create Animation shader program
-        dw::Shader* csm_shaders[] = { m_anim_vs.get(), m_anim_fs.get() };
-        m_anim_program = std::make_unique<dw::Program>(2, csm_shaders);
+        dw::Shader* anim_shaders[] = { m_anim_vs.get(), m_anim_fs.get() };
+        m_anim_program = std::make_unique<dw::Program>(2, anim_shaders);
         
         if (!m_anim_program)
         {
@@ -176,9 +176,9 @@ private:
             return false;
         }
         
-		m_anim_program->uniform_block_binding("GlobalUniforms", 0);
-		m_anim_program->uniform_block_binding("ObjectUniforms", 1);
-		m_anim_program->uniform_block_binding("BoneUniforms", 2);
+		m_anim_program->uniform_block_binding("GlobalUBO", 0);
+		m_anim_program->uniform_block_binding("ObjectUBO", 1);
+		m_anim_program->uniform_block_binding("BoneUBO", 2);
 
 		return true;
 	}
@@ -203,6 +203,13 @@ private:
 
 	bool load_mesh()
 	{
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/ybot.fbx"));
+
+		if (!m_skeletal_mesh)
+		{
+			DW_LOG_FATAL("Failed to load mesh!");
+			return false;
+		}
 
 		return true;
 	}
@@ -241,6 +248,30 @@ private:
 			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.index_count, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * submesh.base_index), submesh.base_vertex);
 		}
 	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void render_mesh(SkeletalMesh* mesh, const ObjectUniforms& transforms, const PoseTransforms& bones)
+	{
+		// Copy new data into UBO.
+		update_object_uniforms(transforms);
+		update_bone_uniforms(bones);
+
+		// Bind uniform buffers.
+		m_object_ubo->bind_base(1);
+		m_bone_ubo->bind_base(2);
+
+		// Bind vertex array.
+		mesh->bind_vao();
+
+		for (uint32_t i = 0; i < mesh->num_sub_meshes(); i++)
+		{
+			SubMesh& submesh = mesh->sub_mesh(i);
+
+			// Issue draw call.
+			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.num_indices, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * submesh.base_index), submesh.base_vertex);
+		}
+	}
     
     // -----------------------------------------------------------------------------------------------------------------------------------
     
@@ -270,6 +301,33 @@ private:
         
         // Draw meshes.
     }
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void render_skeletal_meshes()
+	{
+		// Bind and set viewport.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, m_width, m_height);
+
+		// Clear default framebuffer.
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Bind states.
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+
+		// Bind shader program.
+		m_anim_program->use();
+
+		// Bind uniform buffers.
+		m_global_ubo->bind_base(0);
+
+		// Draw meshes.
+		render_mesh(m_skeletal_mesh.get(), m_character_transforms, m_pose_transforms);
+	}
     
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -343,6 +401,10 @@ private:
         }
         
         current->update();
+
+		m_global_uniforms.view = current->m_view;
+		m_global_uniforms.projection = current->m_projection;
+		m_character_transforms.model = glm::mat4(1.0f);
     }
     
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -376,6 +438,10 @@ private:
 	ObjectUniforms m_plane_transforms;
     ObjectUniforms m_character_transforms;
     GlobalUniforms m_global_uniforms;
+	PoseTransforms m_pose_transforms;
+
+	// Mesh
+	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
 
     // Camera controls.
     bool m_mouse_look = false;

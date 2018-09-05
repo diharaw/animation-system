@@ -40,6 +40,8 @@ public:
 	~SkeletalMesh();
 	void bind_vao();
 
+	inline  SubMesh& sub_mesh(uint32_t idx) { return m_sub_meshes[idx]; }
+	inline	uint32_t num_sub_meshes() { return m_sub_meshes.size(); }
 	inline Skeleton* skeleton() { return m_skeleton; }
 
 private:

@@ -115,6 +115,8 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 	}
 
 	skeletal_mesh->create_gpu_objects();
+
+	return skeletal_mesh;
 }
 
 SkeletalMesh::SkeletalMesh()
