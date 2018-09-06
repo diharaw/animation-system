@@ -3,6 +3,7 @@
 #include <camera.h>
 #include <material.h>
 #include <memory>
+#include <iostream>
 #include "skeletal_mesh.h"
 
 // Uniform buffer data structure.
@@ -17,7 +18,7 @@ struct GlobalUniforms
     DW_ALIGNED(16) glm::mat4 projection;
 };
 
-#define CAMERA_FAR_PLANE 1000.0f
+#define CAMERA_FAR_PLANE 10000.0f
 
 class AnimationStateMachine : public dw::Application
 {
@@ -40,6 +41,9 @@ protected:
 
 		// Create camera.
 		create_camera();
+
+		for (int i = 0; i < MAX_BONES; i++)
+			m_pose_transforms.transforms[i] = glm::mat4(1.0f);
 
 		return true;
 	}
@@ -153,8 +157,8 @@ private:
 			return false;
 		}
         
-        m_program->uniform_block_binding("GlobalUBO", 0);
-        m_program->uniform_block_binding("ObjectUBO", 1);
+        m_program->uniform_block_binding("u_GlobalUBO", 0);
+        m_program->uniform_block_binding("u_ObjectUBO", 1);
         
         // Create Animation shaders
 		m_anim_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/skinning_vs.glsl"));
@@ -176,9 +180,9 @@ private:
             return false;
         }
         
-		m_anim_program->uniform_block_binding("GlobalUBO", 0);
-		m_anim_program->uniform_block_binding("ObjectUBO", 1);
-		m_anim_program->uniform_block_binding("BoneUBO", 2);
+		m_anim_program->uniform_block_binding("u_GlobalUBO", 0);
+		m_anim_program->uniform_block_binding("u_ObjectUBO", 1);
+		m_anim_program->uniform_block_binding("u_BoneUBO", 2);
 
 		return true;
 	}
@@ -224,7 +228,7 @@ private:
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
-    void render_mesh(dw::Mesh* mesh, const ObjectUniforms& transforms, bool use_textures = true)
+    void render_mesh(dw::Mesh* mesh, const ObjectUniforms& transforms, bool use_textures = false)
 	{
         // Copy new data into UBO.
         update_object_uniforms(transforms);
@@ -306,18 +310,21 @@ private:
 
 	void render_skeletal_meshes()
 	{
+		// Update global uniforms.
+		update_global_uniforms(m_global_uniforms);
+
 		// Bind and set viewport.
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, m_width, m_height);
 
 		// Clear default framebuffer.
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Bind states.
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		glCullFace(GL_NONE);
 
 		// Bind shader program.
 		m_anim_program->use();
@@ -368,7 +375,7 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-        m_character_transforms.model = glm::mat4(1.0f);
+        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -402,9 +409,7 @@ private:
         
         current->update();
 
-		m_global_uniforms.view = current->m_view;
-		m_global_uniforms.projection = current->m_projection;
-		m_character_transforms.model = glm::mat4(1.0f);
+		update_transforms(current);
     }
     
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -448,8 +453,8 @@ private:
     bool m_debug_mode = false;
     float m_heading_speed = 0.0f;
     float m_sideways_speed = 0.0f;
-    float m_camera_sensitivity = 0.005f;
-    float m_camera_speed = 0.1f;
+    float m_camera_sensitivity = 0.05f;
+    float m_camera_speed = 0.01f;
 };
 
 DW_DECLARE_MAIN(AnimationStateMachine)

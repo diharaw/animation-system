@@ -9,8 +9,8 @@ const int MAX_BONES = 128;
 
 layout (std140) uniform u_GlobalUBO
 { 
-    mat4 projection;
     mat4 view;
+    mat4 projection;
 };
 
 layout (std140) uniform u_ObjectUBO
@@ -33,7 +33,7 @@ void main()
     bone_transform     += bones[VS_IN_BoneIDs[2]] * VS_IN_Weights[2];
     bone_transform     += bones[VS_IN_BoneIDs[3]] * VS_IN_Weights[3];
 
-    vec4 position = bone_transform * vec4(VS_IN_Position, 1.0f);
+    vec4 position = vec4(VS_IN_Position, 1.0f);
 
     vec4 world_pos = model * position;
     PS_IN_FragPos = world_pos.xyz;

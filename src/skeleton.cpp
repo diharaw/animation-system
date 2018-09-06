@@ -54,6 +54,9 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 	for (int i = 0; i < m_num_raw_bones; i++)
 	{
+		if (!temp_bone_list[i])
+			continue;
+
 		std::string bone_name = std::string(temp_bone_list[i]->mName.C_Str());
 
 		if (bone_name == node_name)

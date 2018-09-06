@@ -7,7 +7,7 @@
 #include <vector>
 #include <macros.h>
 
-#define MAX_BONES 100
+#define MAX_BONES 128
 
 // Contains the translation, rotation and scale of a single bone.
 struct Keyframe
