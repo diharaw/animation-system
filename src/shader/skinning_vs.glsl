@@ -28,17 +28,17 @@ out vec3 PS_IN_Normal;
 
 void main()
 {
-	mat4 bone_transform = bones[VS_IN_BoneIDs[0]] * VS_IN_Weights[0];
-    bone_transform     += bones[VS_IN_BoneIDs[1]] * VS_IN_Weights[1];
-    bone_transform     += bones[VS_IN_BoneIDs[2]] * VS_IN_Weights[2];
-    bone_transform     += bones[VS_IN_BoneIDs[3]] * VS_IN_Weights[3];
+	//mat4 bone_transform = bones[VS_IN_BoneIDs[0]] * VS_IN_Weights[0];
+    //bone_transform     += bones[VS_IN_BoneIDs[1]] * VS_IN_Weights[1];
+   // bone_transform     += bones[VS_IN_BoneIDs[2]] * VS_IN_Weights[2];
+    //bone_transform     += bones[VS_IN_BoneIDs[3]] * VS_IN_Weights[3];
 
     vec4 position = vec4(VS_IN_Position, 1.0f);
 
     vec4 world_pos = model * position;
     PS_IN_FragPos = world_pos.xyz;
 
-	mat3 model_bone_bat = mat3(model * bone_transform);
+	mat3 model_bone_bat = mat3(model);
 
 	PS_IN_Normal = normalize(model_bone_bat * VS_IN_Normal);
 

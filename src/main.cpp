@@ -4,6 +4,7 @@
 #include <material.h>
 #include <memory>
 #include <iostream>
+#include <stack>
 #include "skeletal_mesh.h"
 
 // Uniform buffer data structure.
@@ -39,11 +40,17 @@ protected:
 		if (!load_mesh())
 			return false;
 
+		// Load animations.
+		if (!load_animations())
+			return false;
+
 		// Create camera.
 		create_camera();
 
 		for (int i = 0; i < MAX_BONES; i++)
 			m_pose_transforms.transforms[i] = glm::mat4(1.0f);
+
+		m_index_stack.reserve(256);
 
 		return true;
 	}
@@ -207,11 +214,26 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/ybot.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/UE4/Idle.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
 			DW_LOG_FATAL("Failed to load mesh!");
+			return false;
+		}
+
+		return true;
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	bool load_animations()
+	{
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/UE4/Idle.fbx", m_skeletal_mesh->skeleton()));
+
+		if (!m_idle_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
 			return false;
 		}
 
@@ -375,7 +397,8 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
+		m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_character_transforms.model = glm::scale(m_character_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -416,8 +439,69 @@ private:
     
     void gui()
     {
-
+		ImGui::ShowDemoWindow();
+		visualize_skeleton(m_skeletal_mesh->skeleton());
     }
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void visualize_skeleton(Skeleton* skeleton)
+	{
+		static bool skeleton_window = true;
+
+		ImGui::Begin("Skeleton Hierarchy", &skeleton_window);
+
+		Joint* joints = skeleton->joints();
+
+		for (int i = 0; i < skeleton->num_bones(); i++)
+		{
+			if (m_index_stack.size() > 0 && joints[i].parent_index < m_index_stack.back().first)
+			{
+				while (m_index_stack.back().first != joints[i].parent_index)
+				{
+					if (m_index_stack.back().second)
+						ImGui::TreePop();
+
+					m_index_stack.pop_back();
+				}
+			}
+			
+			bool parent_opened = false;
+
+			for (auto& p : m_index_stack)
+			{
+				if (p.first == joints[i].parent_index && p.second)
+				{
+					parent_opened = true;
+					break;
+				}
+			}
+
+			if (!parent_opened && m_index_stack.size() > 0)
+				continue;
+
+			ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (m_selected_node == i ? ImGuiTreeNodeFlags_Selected : 0);
+			bool opened = ImGui::TreeNodeEx(joints[i].name.c_str(), node_flags);
+
+			if (ImGui::IsItemClicked())
+				m_selected_node = i;
+	
+			m_index_stack.push_back({ i, opened });
+		}
+
+		if (m_index_stack.size() > 0)
+		{
+			while (m_index_stack.size() > 0)
+			{
+				if (m_index_stack.back().second)
+					ImGui::TreePop();
+
+				m_index_stack.pop_back();
+			}
+		}
+
+		ImGui::End();
+	}
     
     // -----------------------------------------------------------------------------------------------------------------------------------
     
@@ -445,6 +529,9 @@ private:
     GlobalUniforms m_global_uniforms;
 	PoseTransforms m_pose_transforms;
 
+	// Animations
+	std::unique_ptr<Animation> m_idle_animation;
+
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
 
@@ -455,6 +542,9 @@ private:
     float m_sideways_speed = 0.0f;
     float m_camera_sensitivity = 0.05f;
     float m_camera_speed = 0.01f;
+
+	int32_t m_selected_node = -1;
+	std::vector<std::pair<int32_t, bool>> m_index_stack;
 };
 
 DW_DECLARE_MAIN(AnimationStateMachine)

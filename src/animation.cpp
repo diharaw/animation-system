@@ -27,7 +27,7 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 
 	Animation* output_animation = new Animation();
 
-	output_animation->channels.resize(skeleton->num_raw_bones());
+	output_animation->channels.resize(skeleton->num_bones());
 	output_animation->name = std::string(animation->mName.C_Str());
 	output_animation->duration = animation->mDuration / animation->mTicksPerSecond;
 	output_animation->duration_in_ticks = animation->mDuration;

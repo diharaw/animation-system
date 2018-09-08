@@ -4,15 +4,43 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <iostream>
+
+void print_scene_heirarchy(aiNode* node)
+{
+	if (node)
+	{
+		std::cout << node->mName.C_Str() << std::endl;
+
+		for (int i = 0; i < node->mNumChildren; i++)
+			print_scene_heirarchy(node->mChildren[i]);
+	}
+}
+
 Skeleton* Skeleton::create(const aiScene* scene)
 {
 	Skeleton* skeleton = new Skeleton();
 
 	std::vector<aiBone*> temp_bone_list(256);
+	std::unordered_set<std::string> bone_map;
 
-	skeleton->build_bone_list(scene->mRootNode, 0, scene, temp_bone_list);
-	skeleton->m_joints.resize(skeleton->m_num_raw_bones);
+	std::cout << "\nBegin Print Scene\n" << std::endl;
+	print_scene_heirarchy(scene->mRootNode);
+	std::cout << "\nEnd Print Scene\n" << std::endl;
+
+	skeleton->build_bone_list(scene->mRootNode, scene, temp_bone_list, bone_map);
+	skeleton->m_joints.resize(skeleton->m_num_joints);
 	skeleton->build_skeleton(scene->mRootNode, 0, scene, temp_bone_list);
+
+	std::cout << "\nBegin Print Joint List\n" << std::endl;
+	
+	for (int i = 0; i < skeleton->m_joints.size(); i++)
+	{
+		auto& joint = skeleton->m_joints[i];
+		std::cout << "Index: " << i << ", Name: " << joint.name << ", Parent: " << joint.parent_index << std::endl;
+	}
+
+	std::cout << "\nEnd Print Joint List\n" << std::endl;
 
 	return skeleton;
 }
@@ -20,7 +48,6 @@ Skeleton* Skeleton::create(const aiScene* scene)
 Skeleton::Skeleton()
 {
 	m_num_joints = 0;
-	m_num_raw_bones = 0;
 }
 
 Skeleton::~Skeleton()
@@ -28,7 +55,7 @@ Skeleton::~Skeleton()
 
 }
 
-void Skeleton::build_bone_list(aiNode* node, int bone_index, const aiScene* scene, std::vector<aiBone*>& temp_bone_list)
+void Skeleton::build_bone_list(aiNode* node, const aiScene* scene, std::vector<aiBone*>& temp_bone_list, std::unordered_set<std::string>& bone_map)
 {
 	for (int i = 0; i < node->mNumMeshes; i++)
 	{
@@ -36,14 +63,20 @@ void Skeleton::build_bone_list(aiNode* node, int bone_index, const aiScene* scen
 
 		for (int j = 0; j < current_mesh->mNumBones; j++)
 		{
-			temp_bone_list[bone_index] = current_mesh->mBones[j];
-			bone_index++;
-			m_num_raw_bones++;
+			std::string bone_name = std::string(current_mesh->mBones[j]->mName.C_Str());
+
+			if (bone_map.find(bone_name) == bone_map.end())
+			{
+				temp_bone_list[m_num_joints] = current_mesh->mBones[j];
+				m_num_joints++;
+
+				bone_map.insert(bone_name);
+			}
 		}
 	}
 
 	for (int i = 0; i < node->mNumChildren; i++)
-		build_bone_list(node->mChildren[i], bone_index, scene, temp_bone_list);
+		build_bone_list(node->mChildren[i], scene, temp_bone_list, bone_map);
 }
 
 void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene, std::vector<aiBone*>& temp_bone_list)
@@ -52,17 +85,14 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 	int count = bone_index;
 
-	for (int i = 0; i < m_num_raw_bones; i++)
+	for (int i = 0; i < m_num_joints; i++)
 	{
-		if (!temp_bone_list[i])
-			continue;
-
 		std::string bone_name = std::string(temp_bone_list[i]->mName.C_Str());
 
 		if (bone_name == node_name)
 		{
-			m_joints[m_num_joints].name = std::string(temp_bone_list[i]->mName.C_Str());
-			m_joints[m_num_joints].offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
+			m_joints[i].name = std::string(temp_bone_list[i]->mName.C_Str());
+			m_joints[i].offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
 
 			aiNode* parent = node->mParent;
 			int index;
@@ -77,8 +107,7 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 					break;
 			}
 
-			m_joints[m_num_joints].parent_index = index;
-			m_num_joints++;
+			m_joints[i].parent_index = index;
 			break;
 		}
 	}
@@ -89,7 +118,7 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 int32_t Skeleton::find_joint_index(const std::string& channel_name)
 {
-	for (int i = 0; i < m_num_raw_bones; i++)
+	for (int i = 0; i < m_num_joints; i++)
 	{
 		if (m_joints[i].name == channel_name)
 			return i;
