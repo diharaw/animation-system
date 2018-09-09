@@ -440,12 +440,57 @@ private:
     void gui()
     {
 		ImGui::ShowDemoWindow();
-		visualize_skeleton(m_skeletal_mesh->skeleton());
+		visualize_hierarchy(m_skeletal_mesh->skeleton());
+		render_skeleton(m_skeletal_mesh->skeleton());
     }
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
-	void visualize_skeleton(Skeleton* skeleton)
+	glm::mat4 world_matrix(glm::mat4 joint)
+	{
+		glm::mat4 joint_matrix;
+		joint_matrix[0] = glm::vec4(glm::normalize(glm::vec3(joint[0].x, joint[0].y, joint[0].z)), 0.0f);
+		joint_matrix[1] = glm::vec4(glm::normalize(glm::vec3(joint[1].x, joint[1].y, joint[1].z)), 0.0f);
+		joint_matrix[2] = glm::vec4(glm::normalize(glm::vec3(joint[2].x, joint[2].y, joint[2].z)), 0.0f);
+		joint_matrix[3] = glm::vec4(glm::vec3(joint[3].x, joint[3].y, joint[3].z), 1.0f);
+
+		glm::vec3 bone_dir = glm::vec3(joint[0].w, joint[1].w, joint[2].w);
+		float bone_len = glm::length(bone_dir);
+
+		glm::mat4 world_matrix;
+		world_matrix[0] = joint_matrix[0] * bone_len;
+		world_matrix[1] = joint_matrix[1] * bone_len;
+		world_matrix[2] = joint_matrix[2] * bone_len;
+		world_matrix[3] = joint_matrix[3];
+
+		return world_matrix;
+	}
+
+	void render_skeleton(Skeleton* skeleton)
+	{
+		Joint* joints = skeleton->joints();
+
+		for (int i = 0; i < skeleton->num_bones(); i++)
+		{
+			m_pose_transforms.transforms[i] = joints[i].offset_transform;
+
+			int parent_index = joints[i].parent_index;
+
+			if (parent_index == -1)
+				m_pose_transforms.transforms[i] = joints[i].offset_transform;
+			else
+				m_pose_transforms.transforms[i] = m_pose_transforms.transforms[parent_index] * joints[i].offset_transform;
+
+			glm::mat4 joint = joints[i].offset_transform;
+			glm::mat4 mat = m_character_transforms.model * world_matrix(joint);
+
+			m_debug_draw.sphere(0.5f, glm::vec3(mat[3].x, mat[3].y, mat[3].z), glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void visualize_hierarchy(Skeleton* skeleton)
 	{
 		static bool skeleton_window = true;
 

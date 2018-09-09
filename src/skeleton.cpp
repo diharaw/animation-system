@@ -24,23 +24,23 @@ Skeleton* Skeleton::create(const aiScene* scene)
 	std::vector<aiBone*> temp_bone_list(256);
 	std::unordered_set<std::string> bone_map;
 
-	std::cout << "\nBegin Print Scene\n" << std::endl;
-	print_scene_heirarchy(scene->mRootNode);
-	std::cout << "\nEnd Print Scene\n" << std::endl;
+	//std::cout << "\nBegin Print Scene\n" << std::endl;
+	//print_scene_heirarchy(scene->mRootNode);
+	//std::cout << "\nEnd Print Scene\n" << std::endl;
 
 	skeleton->build_bone_list(scene->mRootNode, scene, temp_bone_list, bone_map);
 	skeleton->m_joints.resize(skeleton->m_num_joints);
 	skeleton->build_skeleton(scene->mRootNode, 0, scene, temp_bone_list);
 
-	std::cout << "\nBegin Print Joint List\n" << std::endl;
+	//std::cout << "\nBegin Print Joint List\n" << std::endl;
 	
 	for (int i = 0; i < skeleton->m_joints.size(); i++)
 	{
 		auto& joint = skeleton->m_joints[i];
-		std::cout << "Index: " << i << ", Name: " << joint.name << ", Parent: " << joint.parent_index << std::endl;
+		//std::cout << "Index: " << i << ", Name: " << joint.name << ", Parent: " << joint.parent_index << std::endl;
 	}
 
-	std::cout << "\nEnd Print Joint List\n" << std::endl;
+	//std::cout << "\nEnd Print Joint List\n" << std::endl;
 
 	return skeleton;
 }
@@ -79,6 +79,14 @@ void Skeleton::build_bone_list(aiNode* node, const aiScene* scene, std::vector<a
 		build_bone_list(node->mChildren[i], scene, temp_bone_list, bone_map);
 }
 
+void print_mat4(glm::mat4 m)
+{
+	printf("[ %f, %f, %f, %f]\n", m[0].x, m[1].x, m[2].x, m[3].x);
+	printf("[ %f, %f, %f, %f]\n", m[0].y, m[1].y, m[2].y, m[3].y);
+	printf("[ %f, %f, %f, %f]\n", m[0].z, m[1].z, m[2].z, m[3].z);
+	printf("[ %f, %f, %f, %f]\n", m[0].w, m[1].w, m[2].w, m[3].w);
+}
+
 void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene, std::vector<aiBone*>& temp_bone_list)
 {
 	std::string node_name = std::string(node->mName.C_Str());
@@ -93,6 +101,9 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 		{
 			m_joints[i].name = std::string(temp_bone_list[i]->mName.C_Str());
 			m_joints[i].offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
+
+			std::cout << "Name: " << m_joints[i].name << std::endl;
+			print_mat4(m_joints[i].offset_transform);
 
 			aiNode* parent = node->mParent;
 			int index;
