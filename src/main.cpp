@@ -41,8 +41,8 @@ protected:
 			return false;
 
 		// Load animations.
-		if (!load_animations())
-			return false;
+		//if (!load_animations())
+		//	return false;
 
 		// Create camera.
 		create_camera();
@@ -474,17 +474,16 @@ private:
 		{
 			m_pose_transforms.transforms[i] = joints[i].offset_transform;
 
-			int parent_index = joints[i].parent_index;
-
-			if (parent_index == -1)
-				m_pose_transforms.transforms[i] = joints[i].offset_transform;
-			else
-				m_pose_transforms.transforms[i] = m_pose_transforms.transforms[parent_index] * joints[i].offset_transform;
-
 			glm::mat4 joint = joints[i].offset_transform;
-			glm::mat4 mat = m_character_transforms.model * world_matrix(joint);
+			glm::mat4 mat = m_character_transforms.model * glm::inverse(joint);
 
-			m_debug_draw.sphere(0.5f, glm::vec3(mat[3].x, mat[3].y, mat[3].z), glm::vec3(1.0f, 0.0f, 0.0f));
+			glm::vec4 p = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			glm::vec3 color = glm::vec3(1.0f, 0.0f, 0.0f);
+
+			if (joints[i].parent_index == -1)
+				color = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			m_debug_draw.sphere(0.1f, glm::vec3(p.x, p.y, p.z), color);
 		}
 	}
 
