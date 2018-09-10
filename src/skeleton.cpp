@@ -29,7 +29,7 @@ Skeleton* Skeleton::create(const aiScene* scene)
 	std::cout << "\nEnd Print Scene\n" << std::endl;
 
 	skeleton->build_bone_list(scene->mRootNode, scene, temp_bone_list, bone_map);
-	skeleton->m_joints.resize(skeleton->m_num_joints);
+	skeleton->m_joints.reserve(skeleton->m_num_joints);
 	skeleton->build_skeleton(scene->mRootNode, 0, scene, temp_bone_list);
 
 	std::cout << "\nBegin Print Joint List\n" << std::endl;
@@ -91,8 +91,10 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 		if (bone_name == node_name)
 		{
-			m_joints[i].name = std::string(temp_bone_list[i]->mName.C_Str());
-			m_joints[i].offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
+			Joint joint;
+
+			joint.name = std::string(temp_bone_list[i]->mName.C_Str());
+			joint.offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
 
 			aiNode* parent = node->mParent;
 			int index;
@@ -107,7 +109,9 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 					break;
 			}
 
-			m_joints[i].parent_index = index;
+			joint.parent_index = index;
+			m_joints.push_back(joint);
+
 			break;
 		}
 	}
@@ -118,7 +122,7 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 int32_t Skeleton::find_joint_index(const std::string& channel_name)
 {
-	for (int i = 0; i < m_num_joints; i++)
+	for (int i = 0; i < m_joints.size(); i++)
 	{
 		if (m_joints[i].name == channel_name)
 			return i;

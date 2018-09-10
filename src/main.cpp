@@ -19,6 +19,12 @@ struct GlobalUniforms
     DW_ALIGNED(16) glm::mat4 projection;
 };
 
+struct BoneVertex
+{
+	glm::vec3 position;
+	glm::vec3 normal;
+};
+
 #define CAMERA_FAR_PLANE 10000.0f
 
 class AnimationStateMachine : public dw::Application
@@ -33,6 +39,9 @@ protected:
 		if (!create_shaders())
 			return false;
 
+		if (!create_bone_mesh())
+			return false;
+
 		if (!create_uniform_buffer())
 			return false;
 
@@ -41,8 +50,8 @@ protected:
 			return false;
 
 		// Load animations.
-		//if (!load_animations())
-		//	return false;
+		if (!load_animations())
+			return false;
 
 		// Create camera.
 		create_camera();
@@ -64,9 +73,34 @@ protected:
         
 		// Update camera.
         update_camera();
-        
+
+		// Update global uniforms.
+		Joint* joints = m_skeletal_mesh->skeleton()->joints();
+
+		for (int i = 0; i < m_skeletal_mesh->skeleton()->num_bones(); i++)
+			m_pose_transforms.transforms[i] = glm::inverse(joints[i].offset_transform);
+		
+		update_bone_uniforms(m_pose_transforms);
+		update_global_uniforms(m_global_uniforms);
+		update_object_uniforms(m_character_transforms);
+
+		// Bind and set viewport.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, m_width, m_height);
+
+		// Clear default framebuffer.
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Bind states.
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+	
         // Render scene.
 		render_skeletal_meshes();
+
+		// Render Skeleton
+		//render_skeleton(m_skeletal_mesh->skeleton());
         
         // Render debug draw.
         m_debug_draw.render(nullptr, m_width, m_height, m_debug_mode ? m_debug_camera->m_view_projection : m_main_camera->m_view_projection);
@@ -142,6 +176,74 @@ private:
     
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
+	bool create_bone_mesh()
+	{
+		const float kInter = 0.2f;
+		const float kScale = 1.0f;
+
+		const glm::vec3 pos[6] = 
+		{
+			glm::vec3(1.f, 0.f, 0.f) * kScale,     glm::vec3(kInter, .1f, .1f) * kScale,
+			glm::vec3(kInter, .1f, -.1f) * kScale, glm::vec3(kInter, -.1f, -.1f) * kScale,
+			glm::vec3(kInter, -.1f, .1f) * kScale, glm::vec3(0.f, 0.f, 0.f) * kScale
+		};
+
+		const glm::vec3 normals[8] =
+		{
+			glm::normalize(glm::cross(pos[2] - pos[1], pos[2] - pos[0])),
+			glm::normalize(glm::cross(pos[1] - pos[2], pos[1] - pos[5])),
+			glm::normalize(glm::cross(pos[3] - pos[2], pos[3] - pos[0])),
+			glm::normalize(glm::cross(pos[2] - pos[3], pos[2] - pos[5])),
+			glm::normalize(glm::cross(pos[4] - pos[3], pos[4] - pos[0])),
+			glm::normalize(glm::cross(pos[3] - pos[4], pos[3] - pos[5])),
+			glm::normalize(glm::cross(pos[1] - pos[4], pos[1] - pos[0])),
+			glm::normalize(glm::cross(pos[4] - pos[1], pos[4] - pos[5])) 
+		};
+
+		const BoneVertex bones[24] = 
+		{
+			{pos[0], normals[0]}, {pos[2], normals[0]},
+			{pos[1], normals[0]}, {pos[5], normals[1]},
+			{pos[1], normals[1]}, {pos[2], normals[1]},
+			{pos[0], normals[2]}, {pos[3], normals[2]},
+			{pos[2], normals[2]}, {pos[5], normals[3]},
+			{pos[2], normals[3]}, {pos[3], normals[3]},
+			{pos[0], normals[4]}, {pos[4], normals[4]},
+			{pos[3], normals[4]}, {pos[5], normals[5]},
+			{pos[3], normals[5]}, {pos[4], normals[5]},
+			{pos[0], normals[6]}, {pos[1], normals[6]},
+			{pos[4], normals[6]}, {pos[5], normals[7]},
+			{pos[4], normals[7]}, {pos[1], normals[7]} 
+		};
+
+		m_bone_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(BoneVertex) * 24, (BoneVertex*)&bones[0]);
+
+		if (!m_bone_vbo)
+		{
+			DW_LOG_ERROR("Failed to create Vertex Buffer");
+			return false;
+		}
+
+		dw::VertexAttrib attribs[] =
+		{
+			{ 3, GL_FLOAT, false, 0 },
+			{ 3, GL_FLOAT, false, offsetof(BoneVertex, normal) }
+		};
+
+		// Create vertex array.
+		m_bone_vao = std::make_unique<dw::VertexArray>(m_bone_vbo.get(), nullptr, sizeof(BoneVertex), 2, attribs);
+
+		if (!m_bone_vao)
+		{
+			DW_LOG_ERROR("Failed to create Vertex Array");
+			return false;
+		}
+
+		return true;
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
 	bool create_shaders()
 	{
 		// Create general shaders
@@ -191,6 +293,30 @@ private:
 		m_anim_program->uniform_block_binding("u_ObjectUBO", 1);
 		m_anim_program->uniform_block_binding("u_BoneUBO", 2);
 
+		// Create Bone shaders
+		m_bone_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/bone_vs.glsl"));
+		m_bone_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/bone_fs.glsl"));
+
+		if (!m_bone_vs || !m_bone_fs)
+		{
+			DW_LOG_FATAL("Failed to create Bone Shaders");
+			return false;
+		}
+
+		// Create Bone shader program
+		dw::Shader* bone_shaders[] = { m_bone_vs.get(), m_bone_fs.get() };
+		m_bone_program = std::make_unique<dw::Program>(2, bone_shaders);
+
+		if (!m_bone_program)
+		{
+			DW_LOG_FATAL("Failed to create Bone Shader Program");
+			return false;
+		}
+
+		m_bone_program->uniform_block_binding("u_GlobalUBO", 0);
+		m_bone_program->uniform_block_binding("u_ObjectUBO", 1);
+		m_bone_program->uniform_block_binding("u_BoneUBO", 2);
+
 		return true;
 	}
 
@@ -214,7 +340,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/UE4/Idle.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/paladin.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -229,7 +355,7 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/UE4/Idle.fbx", m_skeletal_mesh->skeleton()));
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/idle.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_idle_animation)
 		{
@@ -250,39 +376,28 @@ private:
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
-    void render_mesh(dw::Mesh* mesh, const ObjectUniforms& transforms, bool use_textures = false)
+	void render_skeleton(Skeleton* skeleton)
 	{
-        // Copy new data into UBO.
-        update_object_uniforms(transforms);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		Joint* joints = skeleton->joints();
+
+		m_bone_program->use();
 
 		// Bind uniform buffers.
-        m_global_ubo->bind_base(0);
-        m_object_ubo->bind_base(1);
+		m_global_ubo->bind_base(0);
+		m_object_ubo->bind_base(1);
+		m_bone_ubo->bind_base(2);
 
-		// Bind vertex array.
-        mesh->mesh_vertex_array()->bind();
+		m_bone_vao->bind();
 
-		for (uint32_t i = 0; i < mesh->sub_mesh_count(); i++)
-		{
-			dw::SubMesh& submesh = mesh->sub_meshes()[i];
-
-			// Bind texture.
-            if (use_textures)
-                submesh.mat->texture(0)->bind(0);
-
-			// Issue draw call.
-			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.index_count, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * submesh.base_index), submesh.base_vertex);
-		}
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 24, skeleton->num_bones());
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
 	void render_mesh(SkeletalMesh* mesh, const ObjectUniforms& transforms, const PoseTransforms& bones)
 	{
-		// Copy new data into UBO.
-		update_object_uniforms(transforms);
-		update_bone_uniforms(bones);
-
 		// Bind uniform buffers.
 		m_object_ubo->bind_base(1);
 		m_bone_ubo->bind_base(2);
@@ -299,55 +414,10 @@ private:
 		}
 	}
     
-    // -----------------------------------------------------------------------------------------------------------------------------------
-    
-    void render_scene()
-    {
-        // Update global uniforms.
-        update_global_uniforms(m_global_uniforms);
-
-        // Bind and set viewport.
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, m_width, m_height);
-  
-        // Clear default framebuffer.
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // Bind states.
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        
-        // Bind shader program.
-        m_program->use();
-        
-        // Bind uniform buffers.
-		m_bone_ubo->bind_base(2);
-        
-        // Draw meshes.
-    }
-
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
 	void render_skeletal_meshes()
 	{
-		// Update global uniforms.
-		update_global_uniforms(m_global_uniforms);
-
-		// Bind and set viewport.
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, m_width, m_height);
-
-		// Clear default framebuffer.
-		glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Bind states.
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_NONE);
-
 		// Bind shader program.
 		m_anim_program->use();
 
@@ -397,8 +467,8 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-		m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        m_character_transforms.model = glm::scale(m_character_transforms.model, glm::vec3(0.1f));
+		//m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -441,32 +511,12 @@ private:
     {
 		ImGui::ShowDemoWindow();
 		visualize_hierarchy(m_skeletal_mesh->skeleton());
-		render_skeleton(m_skeletal_mesh->skeleton());
+		visualize_skeleton(m_skeletal_mesh->skeleton());
     }
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
-	glm::mat4 world_matrix(glm::mat4 joint)
-	{
-		glm::mat4 joint_matrix;
-		joint_matrix[0] = glm::vec4(glm::normalize(glm::vec3(joint[0].x, joint[0].y, joint[0].z)), 0.0f);
-		joint_matrix[1] = glm::vec4(glm::normalize(glm::vec3(joint[1].x, joint[1].y, joint[1].z)), 0.0f);
-		joint_matrix[2] = glm::vec4(glm::normalize(glm::vec3(joint[2].x, joint[2].y, joint[2].z)), 0.0f);
-		joint_matrix[3] = glm::vec4(glm::vec3(joint[3].x, joint[3].y, joint[3].z), 1.0f);
-
-		glm::vec3 bone_dir = glm::vec3(joint[0].w, joint[1].w, joint[2].w);
-		float bone_len = glm::length(bone_dir);
-
-		glm::mat4 world_matrix;
-		world_matrix[0] = joint_matrix[0] * bone_len;
-		world_matrix[1] = joint_matrix[1] * bone_len;
-		world_matrix[2] = joint_matrix[2] * bone_len;
-		world_matrix[3] = joint_matrix[3];
-
-		return world_matrix;
-	}
-
-	void render_skeleton(Skeleton* skeleton)
+	void visualize_skeleton(Skeleton* skeleton)
 	{
 		Joint* joints = skeleton->joints();
 
@@ -563,6 +613,11 @@ private:
     std::unique_ptr<dw::Shader> m_anim_fs;
     std::unique_ptr<dw::Program> m_anim_program;
 
+	// Bone shaders.
+	std::unique_ptr<dw::Shader> m_bone_vs;
+	std::unique_ptr<dw::Shader> m_bone_fs;
+	std::unique_ptr<dw::Program> m_bone_program;
+
     // Camera.
     std::unique_ptr<dw::Camera> m_main_camera;
     std::unique_ptr<dw::Camera> m_debug_camera;
@@ -578,6 +633,11 @@ private:
 
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
+
+	// Bone Mesh
+	std::unique_ptr<dw::VertexBuffer> m_bone_vbo;
+	std::unique_ptr<dw::IndexBuffer>  m_bone_ibo;
+	std::unique_ptr<dw::VertexArray>  m_bone_vao;
 
     // Camera controls.
     bool m_mouse_look = false;
