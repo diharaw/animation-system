@@ -38,6 +38,12 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 	{
 		aiNodeAnim* channel = scene->mAnimations[0]->mChannels[i];
 		std::string channel_name = std::string(channel->mNodeName.C_Str());
+
+		size_t pos = channel_name.find_first_of(':');
+
+		if (pos != std::string::npos)
+			channel_name = channel_name.substr(pos + 1);
+
 		int joint_index = skeleton->find_joint_index(channel_name);
 
 		if (joint_index != -1)

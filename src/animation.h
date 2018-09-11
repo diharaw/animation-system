@@ -28,6 +28,7 @@ struct AnimationChannel
 // A structure containing Keyframes for each bone at the current point in time of the current animation.
 struct Pose
 {
+	uint32_t num_keyframes;
 	Keyframe keyframes[MAX_BONES];
 };
 

@@ -2,12 +2,20 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 set(ASM_HEADERS ${PROJECT_SOURCE_DIR}/src/skeletal_mesh.h 
                 ${PROJECT_SOURCE_DIR}/src/animation.h
-                ${PROJECT_SOURCE_DIR}/src/skeleton.h)
+                ${PROJECT_SOURCE_DIR}/src/skeleton.h
+                ${PROJECT_SOURCE_DIR}/src/anim_blend.h
+                ${PROJECT_SOURCE_DIR}/src/anim_bone_to_local.h
+                ${PROJECT_SOURCE_DIR}/src/anim_override.h
+                ${PROJECT_SOURCE_DIR}/src/anim_sample.h)
 
 set(ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/main.cpp
                 ${PROJECT_SOURCE_DIR}/src/skeletal_mesh.cpp
                 ${PROJECT_SOURCE_DIR}/src/animation.cpp
-                ${PROJECT_SOURCE_DIR}/src/skeleton.cpp)
+                ${PROJECT_SOURCE_DIR}/src/skeleton.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_blend.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_bone_to_local.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_override.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_sample.cpp)
 
 if(APPLE)
     add_executable(AnimationStateMachine MACOSX_BUNDLE ${ASM_HEADERS} ${ASM_SOURCES})

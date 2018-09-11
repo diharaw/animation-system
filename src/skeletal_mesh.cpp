@@ -2,6 +2,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <iostream>
 #include "logger.h"
 
 SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
@@ -103,16 +104,21 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 						skeletal_mesh->m_vertices[VertexID].bone_weights[x] = Weight;
 						break;
 					}
-					else if (skeletal_mesh->m_has_vertex_colors && skeletal_mesh->m_color_vertices[VertexID].bone_weights[x] == 0.0f)
-					{
-						skeletal_mesh->m_color_vertices[VertexID].bone_indices[x] = joint_index;
-						skeletal_mesh->m_color_vertices[VertexID].bone_weights[x] = Weight;
-						break;
-					}
 				}
 			}
 		}
 	}
+
+	//int count = 0;
+
+	//for (auto& v : skeletal_mesh->m_vertices)
+	//{
+	//	if (v.bone_indices.x == 9999 || v.bone_indices.y == 9999 || v.bone_indices.z == 9999 || v.bone_indices.w == 9999)
+	//		count++;
+
+	//	std::cout << "Bone ID: " << v.bone_indices.x << ", " << v.bone_indices.y << ", " << v.bone_indices.z << ", " << v.bone_indices.w << std::endl;
+	//	std::cout << "Bone Weights: " << v.bone_weights.x << ", " << v.bone_weights.y << ", " << v.bone_weights.z << ", " << v.bone_weights.w << std::endl;
+	//}
 
 	skeletal_mesh->create_gpu_objects();
 

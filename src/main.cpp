@@ -6,6 +6,8 @@
 #include <iostream>
 #include <stack>
 #include "skeletal_mesh.h"
+#include "anim_sample.h"
+#include "anim_bone_to_local.h"
 
 // Uniform buffer data structure.
 struct ObjectUniforms
@@ -60,6 +62,7 @@ protected:
 			m_pose_transforms.transforms[i] = glm::mat4(1.0f);
 
 		m_index_stack.reserve(256);
+		m_joint_pos.reserve(256);
 
 		return true;
 	}
@@ -80,7 +83,6 @@ protected:
 		for (int i = 0; i < m_skeletal_mesh->skeleton()->num_bones(); i++)
 			m_pose_transforms.transforms[i] = glm::inverse(joints[i].offset_transform);
 		
-		update_bone_uniforms(m_pose_transforms);
 		update_global_uniforms(m_global_uniforms);
 		update_object_uniforms(m_character_transforms);
 
@@ -95,12 +97,21 @@ protected:
 		// Bind states.
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-	
-        // Render scene.
-		render_skeletal_meshes();
 
-		// Render Skeleton
-		//render_skeleton(m_skeletal_mesh->skeleton());
+		// Update Skeleton
+		update_animations();
+	
+        // Render Mesh.
+		if (m_visualize_mesh)
+			render_skeletal_meshes();
+
+		// Render Joints.
+		if (m_visualize_joints)
+			visualize_skeleton(m_skeletal_mesh->skeleton());
+
+		// Render Bones.
+		if (m_visualize_bones)
+			visualize_bones(m_skeletal_mesh->skeleton());
         
         // Render debug draw.
         m_debug_draw.render(nullptr, m_width, m_height, m_debug_mode ? m_debug_camera->m_view_projection : m_main_camera->m_view_projection);
@@ -157,7 +168,7 @@ protected:
 	void mouse_pressed(int code) override
 	{
 		// Enable mouse look.
-		if (code == GLFW_MOUSE_BUTTON_LEFT)
+		if (code == GLFW_MOUSE_BUTTON_RIGHT)
 			m_mouse_look = true;
 	}
 
@@ -166,8 +177,29 @@ protected:
 	void mouse_released(int code) override
 	{
 		// Disable mouse look.
-		if (code == GLFW_MOUSE_BUTTON_LEFT)
+		if (code == GLFW_MOUSE_BUTTON_RIGHT)
 			m_mouse_look = false;
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+protected:
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	dw::AppSettings intial_app_settings() override
+	{
+		dw::AppSettings settings;
+
+		settings.resizable = true;
+		settings.maximized = false;
+		settings.refresh_rate = 60;
+		settings.major_ver = 4;
+		settings.width = 1280;
+		settings.height = 720;
+		settings.title = "Animation State Machine Demo";
+
+		return settings;
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
@@ -340,7 +372,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/paladin.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/UE4/Idle.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -355,13 +387,16 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/idle.fbx", m_skeletal_mesh->skeleton()));
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/UE4/Idle.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_idle_animation)
 		{
 			DW_LOG_FATAL("Failed to load animation!");
 			return false;
 		}
+
+		m_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_idle_animation.get());
+		m_bone_to_local = std::make_unique<AnimBoneToLocal>(m_skeletal_mesh->skeleton());
 
 		return true;
 	}
@@ -448,10 +483,10 @@ private:
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
-	void update_bone_uniforms(const PoseTransforms& bones)
+	void update_bone_uniforms(PoseTransforms* bones)
 	{
 		void* ptr = m_bone_ubo->map(GL_WRITE_ONLY);
-		memcpy(ptr, &bones, sizeof(PoseTransforms));
+		memcpy(ptr, bones, sizeof(PoseTransforms));
 		m_bone_ubo->unmap();
 	}
     
@@ -467,8 +502,8 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-		//m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
+		m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_character_transforms.model = glm::scale(m_character_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -485,12 +520,17 @@ private:
         
         current->set_translation_delta(current->m_forward, forward_delta);
         current->set_translation_delta(current->m_right, right_delta);
+
+		double d = 1 - exp(log(0.5) * m_springness * m_delta_seconds);
+
+		m_camera_x = m_mouse_delta_x * d;
+		m_camera_y = m_mouse_delta_y * d;
         
         if (m_mouse_look)
         {
             // Activate Mouse Look
-            current->set_rotatation_delta(glm::vec3((float)(m_mouse_delta_y * m_camera_sensitivity * m_delta),
-                                                    (float)(m_mouse_delta_x * m_camera_sensitivity * m_delta),
+            current->set_rotatation_delta(glm::vec3((float)(m_camera_y),
+                                                    (float)(m_camera_x),
                                                     (float)(0.0f)));
         }
         else
@@ -509,31 +549,68 @@ private:
     
     void gui()
     {
-		ImGui::ShowDemoWindow();
 		visualize_hierarchy(m_skeletal_mesh->skeleton());
-		visualize_skeleton(m_skeletal_mesh->skeleton());
     }
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void update_animations()
+	{
+		Pose* pose = m_sampler->sample(m_delta_seconds);
+		PoseTransforms* transforms = m_bone_to_local->generate_transforms(pose);
+
+		update_bone_uniforms(transforms);
+		update_skeleton_debug(m_skeletal_mesh->skeleton(), m_bone_to_local->global_transforms());
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void update_skeleton_debug(Skeleton* skeleton, PoseTransforms* transforms)
+	{
+		m_joint_pos.clear();
+
+		Joint* joints = skeleton->joints();
+
+		for (int i = 0; i < skeleton->num_bones(); i++)
+		{
+			glm::mat4 joint = joints[i].offset_transform;
+			glm::mat4 mat = m_character_transforms.model * transforms->transforms[i];
+
+			glm::vec4 p = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			m_joint_pos.push_back(glm::vec3(p.x, p.y, p.z));
+		}
+	}
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
 
 	void visualize_skeleton(Skeleton* skeleton)
 	{
+		for (int i = 0; i < m_joint_pos.size(); i++)
+		{
+			glm::vec3 color = glm::vec3(1.0f, 0.0f, 0.0f);
+
+			if (i == 0)
+				color = glm::vec3(0.0f, 0.0f, 1.0f);
+	
+			if (m_selected_node == i)
+				color = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			m_debug_draw.sphere(0.1f, m_joint_pos[i], color);
+		}
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------------------------
+
+	void visualize_bones(Skeleton* skeleton)
+	{
 		Joint* joints = skeleton->joints();
 
 		for (int i = 0; i < skeleton->num_bones(); i++)
 		{
-			m_pose_transforms.transforms[i] = joints[i].offset_transform;
-
-			glm::mat4 joint = joints[i].offset_transform;
-			glm::mat4 mat = m_character_transforms.model * glm::inverse(joint);
-
-			glm::vec4 p = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-			glm::vec3 color = glm::vec3(1.0f, 0.0f, 0.0f);
-
 			if (joints[i].parent_index == -1)
-				color = glm::vec3(0.0f, 1.0f, 0.0f);
+				continue;
 
-			m_debug_draw.sphere(0.1f, glm::vec3(p.x, p.y, p.z), color);
+			m_debug_draw.line(m_joint_pos[i], m_joint_pos[joints[i].parent_index], glm::vec3(0.0f, 1.0f, 0.0f));
 		}
 	}
 
@@ -543,7 +620,15 @@ private:
 	{
 		static bool skeleton_window = true;
 
-		ImGui::Begin("Skeleton Hierarchy", &skeleton_window);
+		ImGui::Begin("Skeletal Animation", &skeleton_window);
+
+		ImGui::Checkbox("Visualize Mesh", &m_visualize_mesh);
+		ImGui::Checkbox("Visualize Joints", &m_visualize_joints);
+		ImGui::Checkbox("Visualize Bones", &m_visualize_bones);
+
+		ImGui::Separator();
+
+		ImGui::Text("Hierarchy");
 
 		Joint* joints = skeleton->joints();
 
@@ -630,6 +715,8 @@ private:
 
 	// Animations
 	std::unique_ptr<Animation> m_idle_animation;
+	std::unique_ptr<AnimSample> m_sampler;
+	std::unique_ptr<AnimBoneToLocal> m_bone_to_local;
 
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
@@ -647,7 +734,18 @@ private:
     float m_camera_sensitivity = 0.05f;
     float m_camera_speed = 0.01f;
 
+	// GUI
+	bool m_visualize_mesh = true;
+	bool m_visualize_joints = false;
+	bool m_visualize_bones = false;
+
+	// Camera orientation.
+	float m_camera_x;
+	float m_camera_y;
+	float m_springness = 10.0f;
+
 	int32_t m_selected_node = -1;
+	std::vector<glm::vec3> m_joint_pos;
 	std::vector<std::pair<int32_t, bool>> m_index_stack;
 };
 
