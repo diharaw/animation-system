@@ -91,7 +91,7 @@ protected:
 		glViewport(0, 0, m_width, m_height);
 
 		// Clear default framebuffer.
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Bind states.
@@ -372,7 +372,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/UE4/Idle.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/ue4_shooter.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -387,7 +387,7 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/UE4/Idle.fbx", m_skeletal_mesh->skeleton()));
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/ue4_shooter_idle.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_idle_animation)
 		{
@@ -502,8 +502,8 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-		m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        m_character_transforms.model = glm::scale(m_character_transforms.model, glm::vec3(0.1f));
+		//m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------

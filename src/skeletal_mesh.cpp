@@ -109,17 +109,6 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 		}
 	}
 
-	//int count = 0;
-
-	//for (auto& v : skeletal_mesh->m_vertices)
-	//{
-	//	if (v.bone_indices.x == 9999 || v.bone_indices.y == 9999 || v.bone_indices.z == 9999 || v.bone_indices.w == 9999)
-	//		count++;
-
-	//	std::cout << "Bone ID: " << v.bone_indices.x << ", " << v.bone_indices.y << ", " << v.bone_indices.z << ", " << v.bone_indices.w << std::endl;
-	//	std::cout << "Bone Weights: " << v.bone_weights.x << ", " << v.bone_weights.y << ", " << v.bone_weights.z << ", " << v.bone_weights.w << std::endl;
-	//}
-
 	skeletal_mesh->create_gpu_objects();
 
 	return skeletal_mesh;
