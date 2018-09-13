@@ -12,7 +12,12 @@ public:
 	float playback_rate();
 
 private:
-	Keyframe interpolate(const Keyframe& a, const Keyframe& b, float t);
+	glm::vec3 interpolate_translation(const glm::vec3& a, const glm::vec3& b, float t);
+	glm::vec3 interpolate_scale(const glm::vec3& a, const glm::vec3& b, float t);
+	glm::quat interpolate_rotation(const glm::quat& a, const glm::quat& b, float t);
+	uint32_t find_translation_key(const std::vector<TranslationKey>& translations, double ticks);
+	uint32_t find_rotation_key(const std::vector<RotationKey>& rotations, double ticks);
+	uint32_t find_scale_key(const std::vector<ScaleKey>& scale, double ticks);
 
 private:
 	double	       m_global_time;

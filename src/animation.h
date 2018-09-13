@@ -12,17 +12,36 @@
 // Contains the translation, rotation and scale of a single bone.
 struct Keyframe
 {
-	double	  time;
 	glm::vec3 translation;
 	glm::quat rotation;
+	glm::vec3 scale;
+};
+
+struct TranslationKey
+{
+	double	  time;
+	glm::vec3 translation;
+};
+
+struct RotationKey
+{
+	double	  time;
+	glm::quat rotation;
+};
+
+struct ScaleKey
+{
+	double	  time;
 	glm::vec3 scale;
 };
 
 // Contains the list of keyframes belonging to a particular bone.
 struct AnimationChannel
 {
-	std::string			  joint_name;
-	std::vector<Keyframe> keyframes;
+	std::string					joint_name;
+	std::vector<TranslationKey> translation_keyframes;
+	std::vector<RotationKey>	rotation_keyframes;
+	std::vector<ScaleKey>		scale_keyframes;
 };
 
 // A structure containing Keyframes for each bone at the current point in time of the current animation.
