@@ -80,7 +80,7 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 
 			for (int j = 0; j < channel->mNumScalingKeys; j++)
 			{
-				output_animation->channels[joint_index].scale_keyframes[j].time = channel->mPositionKeys[j].mTime;
+				output_animation->channels[joint_index].scale_keyframes[j].time = channel->mScalingKeys[j].mTime;
 
 				output_animation->channels[joint_index].scale_keyframes[j].scale = glm::vec3(channel->mScalingKeys[j].mValue.x,
 					channel->mScalingKeys[j].mValue.y,

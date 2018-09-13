@@ -372,7 +372,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/ue4_shooter.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/paladin.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -387,7 +387,7 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/ue4_shooter_idle.fbx", m_skeletal_mesh->skeleton()));
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/idle_alert.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_idle_animation)
 		{

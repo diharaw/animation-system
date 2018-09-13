@@ -32,35 +32,65 @@ Pose* AnimSample::sample(double dt)
 
 		// Calculate interpolated translation
 		{
-			const uint32_t idx_1 = find_translation_key(channel.translation_keyframes, m_local_time);
-			const uint32_t idx_2 = idx_1 + 1;
+			if (channel.translation_keyframes.size() == 0)
+				result.translation = glm::vec3(0.0f);
+			else
+			{
+				const uint32_t idx_1 = find_translation_key(channel.translation_keyframes, m_local_time);
+				const uint32_t idx_2 = idx_1 + 1;
 
-			float delta = (float)(channel.translation_keyframes[idx_2].time - channel.translation_keyframes[idx_1].time);
-			float factor = (m_local_time - (float)channel.translation_keyframes[idx_1].time) / delta;
+				if (channel.translation_keyframes.size() == 1)
+					result.translation = channel.translation_keyframes[idx_1].translation;
+				else
+				{
+					float delta = (float)(channel.translation_keyframes[idx_2].time - channel.translation_keyframes[idx_1].time);
+					float factor = (m_local_time - (float)channel.translation_keyframes[idx_1].time) / delta;
 
-			result.translation = interpolate_translation(channel.translation_keyframes[idx_1].translation, channel.translation_keyframes[idx_2].translation, factor);
+					result.translation = interpolate_translation(channel.translation_keyframes[idx_1].translation, channel.translation_keyframes[idx_2].translation, factor);
+				}
+			}
 		}
 		
 		// Calculate interpolated rotation
 		{
-			const uint32_t idx_1 = find_rotation_key(channel.rotation_keyframes, m_local_time);
-			const uint32_t idx_2 = idx_1 + 1;
+			if (channel.rotation_keyframes.size() == 0)
+				result.rotation = glm::quat();
+			else
+			{
+				const uint32_t idx_1 = find_rotation_key(channel.rotation_keyframes, m_local_time);
+				const uint32_t idx_2 = idx_1 + 1;
 
-			float delta = (float)(channel.rotation_keyframes[idx_2].time - channel.rotation_keyframes[idx_1].time);
-			float factor = (m_local_time - (float)channel.rotation_keyframes[idx_1].time) / delta;
+				if (channel.rotation_keyframes.size() == 1)
+					result.rotation = channel.rotation_keyframes[idx_1].rotation;
+				else
+				{
+					float delta = (float)(channel.rotation_keyframes[idx_2].time - channel.rotation_keyframes[idx_1].time);
+					float factor = (m_local_time - (float)channel.rotation_keyframes[idx_1].time) / delta;
 
-			result.rotation = interpolate_rotation(channel.rotation_keyframes[idx_1].rotation, channel.rotation_keyframes[idx_2].rotation, factor);
+					result.rotation = interpolate_rotation(channel.rotation_keyframes[idx_1].rotation, channel.rotation_keyframes[idx_2].rotation, factor);
+				}
+			}
 		}
 
 		// Calculate interpolated scale
 		{
-			const uint32_t idx_1 = find_scale_key(channel.scale_keyframes, m_local_time);
-			const uint32_t idx_2 = idx_1 + 1;
+			if (channel.scale_keyframes.size() == 0)
+				result.scale = glm::vec3(1.0f);
+			else
+			{
+				const uint32_t idx_1 = find_scale_key(channel.scale_keyframes, m_local_time);
+				const uint32_t idx_2 = idx_1 + 1;
 
-			float delta = (float)(channel.scale_keyframes[idx_2].time - channel.scale_keyframes[idx_1].time);
-			float factor = (m_local_time - (float)channel.scale_keyframes[idx_1].time) / delta;
+				if (channel.scale_keyframes.size() == 1)
+					result.scale = channel.scale_keyframes[idx_1].scale;
+				else
+				{
+					float delta = (float)(channel.scale_keyframes[idx_2].time - channel.scale_keyframes[idx_1].time);
+					float factor = (m_local_time - (float)channel.scale_keyframes[idx_1].time) / delta;
 
-			result.scale = interpolate_scale(channel.scale_keyframes[idx_1].scale, channel.scale_keyframes[idx_2].scale, factor);
+					result.scale = interpolate_scale(channel.scale_keyframes[idx_1].scale, channel.scale_keyframes[idx_2].scale, factor);
+				}
+			}
 		}
 
 		m_pose.keyframes[i] = result;
@@ -103,7 +133,7 @@ uint32_t AnimSample::find_translation_key(const std::vector<TranslationKey>& tra
 
 	for (uint32_t i = 0; i < (translations.size() - 1); i++)
 	{
-		if (ticks < translations[i].time)
+		if (ticks < translations[i + 1].time)
 		{
 			idx = i;
 			break;
@@ -119,7 +149,7 @@ uint32_t AnimSample::find_rotation_key(const std::vector<RotationKey>& rotations
 
 	for (uint32_t i = 0; i < (rotations.size() - 1); i++)
 	{
-		if (ticks < rotations[i].time)
+		if (ticks < rotations[i + 1].time)
 		{
 			idx = i;
 			break;
@@ -135,7 +165,7 @@ uint32_t AnimSample::find_scale_key(const std::vector<ScaleKey>& scale, double t
 
 	for (uint32_t i = 0; i < (scale.size() - 1); i++)
 	{
-		if (ticks < scale[i].time)
+		if (ticks < scale[i + 1].time)
 		{
 			idx = i;
 			break;
