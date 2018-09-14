@@ -81,19 +81,19 @@ void Skeleton::build_bone_list(aiNode* node, const aiScene* scene, std::vector<a
 
 void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene, std::vector<aiBone*>& temp_bone_list)
 {
-	std::string node_name = std::string(node->mName.C_Str());
+	std::string node_name = trimmed_name(node->mName.C_Str());
 
 	int count = bone_index;
 
 	for (int i = 0; i < m_num_joints; i++)
 	{
-		std::string bone_name = std::string(temp_bone_list[i]->mName.C_Str());
+		std::string bone_name = trimmed_name(temp_bone_list[i]->mName.C_Str());
 
 		if (bone_name == node_name)
 		{
 			Joint joint;
 
-			joint.name = std::string(temp_bone_list[i]->mName.C_Str());
+			joint.name = bone_name;
 			joint.offset_transform = glm::transpose(glm::make_mat4(&temp_bone_list[i]->mOffsetMatrix.a1));
 
 			aiNode* parent = node->mParent;
@@ -101,7 +101,7 @@ void Skeleton::build_skeleton(aiNode* node, int bone_index, const aiScene* scene
 
 			while (parent)
 			{
-				index = find_joint_index(std::string(parent->mName.C_Str()));
+				index = find_joint_index(trimmed_name(parent->mName.C_Str()));
 
 				if (index == -1)
 					parent = parent->mParent;

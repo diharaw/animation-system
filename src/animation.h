@@ -71,3 +71,5 @@ struct Animation
 	double						  duration_in_ticks;
 	double						  ticks_per_second;
 };
+
+extern std::string trimmed_name(const std::string& name);

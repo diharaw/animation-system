@@ -372,7 +372,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/paladin.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/alain/arnaud.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -387,7 +387,7 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/idle_alert.fbx", m_skeletal_mesh->skeleton()));
+		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/walk.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_idle_animation)
 		{
@@ -502,8 +502,8 @@ private:
         m_plane_transforms.model = glm::mat4(1.0f);
 
         // Update character transforms.
-		//m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        m_character_transforms.model = glm::scale(m_plane_transforms.model, glm::vec3(0.1f));
+		m_character_transforms.model = glm::rotate(m_plane_transforms.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_character_transforms.model = glm::scale(m_character_transforms.model, glm::vec3(0.1f));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------
@@ -523,8 +523,8 @@ private:
 
 		double d = 1 - exp(log(0.5) * m_springness * m_delta_seconds);
 
-		m_camera_x = m_mouse_delta_x * d;
-		m_camera_y = m_mouse_delta_y * d;
+		m_camera_x = m_mouse_delta_x * m_camera_sensitivity;
+		m_camera_y = m_mouse_delta_y * m_camera_sensitivity;
         
         if (m_mouse_look)
         {
@@ -625,6 +625,10 @@ private:
 		ImGui::Checkbox("Visualize Mesh", &m_visualize_mesh);
 		ImGui::Checkbox("Visualize Joints", &m_visualize_joints);
 		ImGui::Checkbox("Visualize Bones", &m_visualize_bones);
+
+		float rate = m_sampler->playback_rate();
+		ImGui::SliderFloat("Playback Rate", &rate, 0.1f, 1.0f);
+		m_sampler->set_playback_rate(rate);
 
 		ImGui::Separator();
 
@@ -742,7 +746,7 @@ private:
 	// Camera orientation.
 	float m_camera_x;
 	float m_camera_y;
-	float m_springness = 10.0f;
+	float m_springness = 1.0f;
 
 	int32_t m_selected_node = -1;
 	std::vector<glm::vec3> m_joint_pos;

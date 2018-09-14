@@ -37,12 +37,7 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 	for (int i = 0; i < scene->mAnimations[0]->mNumChannels; i++)
 	{
 		aiNodeAnim* channel = scene->mAnimations[0]->mChannels[i];
-		std::string channel_name = std::string(channel->mNodeName.C_Str());
-
-		size_t pos = channel_name.find_first_of(':');
-
-		if (pos != std::string::npos)
-			channel_name = channel_name.substr(pos + 1);
+		std::string channel_name = trimmed_name(channel->mNodeName.C_Str());
 
 		int joint_index = skeleton->find_joint_index(channel_name);
 
@@ -90,4 +85,14 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton)
 	}
 
 	return output_animation;
+}
+
+std::string trimmed_name(const std::string& name)
+{
+	size_t pos = name.find_first_of(':');
+
+	if (pos != std::string::npos)
+		return name.substr(pos + 1);
+	else
+		return name;
 }

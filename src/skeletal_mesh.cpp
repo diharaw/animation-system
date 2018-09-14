@@ -32,7 +32,7 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 	uint32_t num_vertices = 0;
 	uint32_t num_indices = 0;
 
-	skeletal_mesh->m_has_vertex_colors = scene->mMeshes[0]->HasVertexColors(0);
+	skeletal_mesh->m_has_vertex_colors = false;// scene->mMeshes[0]->HasVertexColors(0);
 
 	for (int i = 0; i < scene->mNumMeshes; i++)
 	{
@@ -87,7 +87,7 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 	{
 		for (uint32_t j = 0; j < scene->mMeshes[i]->mNumBones; j++)
 		{
-			std::string joint_name = std::string(scene->mMeshes[i]->mBones[j]->mName.C_Str());
+			std::string joint_name = trimmed_name(scene->mMeshes[i]->mBones[j]->mName.C_Str());
 
 			int joint_index = skeletal_mesh->m_skeleton->find_joint_index(joint_name);
 
