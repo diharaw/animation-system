@@ -16,7 +16,7 @@ An experiment on creating an animation system similar to Unreal Engine 4 from sc
 
 ## Screenshots
 
-![ASM](data/anim.jpg)
+![ASM](data/anim.JPG)
 
 ## Dependencies
 * [dwSampleFramework](https://github.com/diharaw/dwSampleFramework) 
