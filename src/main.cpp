@@ -8,6 +8,7 @@
 #include "skeletal_mesh.h"
 #include "anim_sample.h"
 #include "anim_bone_to_local.h"
+#include "anim_blend.h"
 
 // Uniform buffer data structure.
 struct ObjectUniforms
@@ -387,16 +388,35 @@ private:
 
 	bool load_animations()
 	{
-		m_idle_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/walk.fbx", m_skeletal_mesh->skeleton()));
+		m_walk_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/walk.fbx", m_skeletal_mesh->skeleton()));
 
-		if (!m_idle_animation)
+		if (!m_walk_animation)
 		{
 			DW_LOG_FATAL("Failed to load animation!");
 			return false;
 		}
 
-		m_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_idle_animation.get());
+		m_run_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/jog.fbx", m_skeletal_mesh->skeleton()));
+
+		if (!m_run_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/crackhead.fbx", m_skeletal_mesh->skeleton(), true));
+
+		if (!m_additive_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_walk_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_walk_animation.get());
+		m_run_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_run_animation.get());
+		m_additive_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_additive_animation.get());
 		m_bone_to_local = std::make_unique<AnimBoneToLocal>(m_skeletal_mesh->skeleton());
+		m_blend = std::make_unique<AnimBlend>(m_skeletal_mesh->skeleton());
 
 		return true;
 	}
@@ -556,8 +576,16 @@ private:
 
 	void update_animations()
 	{
-		Pose* pose = m_sampler->sample(m_delta_seconds);
-		PoseTransforms* transforms = m_bone_to_local->generate_transforms(pose);
+		// Sample
+		Pose* walk_pose = m_walk_sampler->sample(m_delta_seconds);
+		Pose* run_pose = m_run_sampler->sample(m_delta_seconds);
+		Pose* additive_pose = m_additive_sampler->sample(m_delta_seconds);
+
+		// Blend
+		Pose* blend_pose = m_blend->blend(walk_pose, run_pose, m_blend_factor);
+		Pose* final_pose = m_blend->blend_partial_additive(blend_pose, additive_pose, m_additive_blend_factor, "Spine3");
+		
+		PoseTransforms* transforms = m_bone_to_local->generate_transforms(final_pose);
 
 		update_bone_uniforms(transforms);
 		update_skeleton_debug(m_skeletal_mesh->skeleton(), m_bone_to_local->global_transforms());
@@ -626,9 +654,12 @@ private:
 		ImGui::Checkbox("Visualize Joints", &m_visualize_joints);
 		ImGui::Checkbox("Visualize Bones", &m_visualize_bones);
 
-		float rate = m_sampler->playback_rate();
+		float rate = m_walk_sampler->playback_rate();
 		ImGui::SliderFloat("Playback Rate", &rate, 0.1f, 1.0f);
-		m_sampler->set_playback_rate(rate);
+		m_walk_sampler->set_playback_rate(rate);
+
+		ImGui::SliderFloat("Blend Factor", &m_blend_factor, 0.0f, 1.0f);
+		ImGui::SliderFloat("Additive Factor", &m_additive_blend_factor, 0.0f, 1.0f);
 
 		ImGui::Separator();
 
@@ -718,9 +749,14 @@ private:
 	PoseTransforms m_pose_transforms;
 
 	// Animations
-	std::unique_ptr<Animation> m_idle_animation;
-	std::unique_ptr<AnimSample> m_sampler;
+	std::unique_ptr<Animation> m_walk_animation;
+	std::unique_ptr<Animation> m_run_animation;
+	std::unique_ptr<Animation> m_additive_animation;
+	std::unique_ptr<AnimSample> m_walk_sampler;
+	std::unique_ptr<AnimSample> m_run_sampler;
+	std::unique_ptr<AnimSample> m_additive_sampler;
 	std::unique_ptr<AnimBoneToLocal> m_bone_to_local;
+	std::unique_ptr<AnimBlend> m_blend;
 
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
@@ -747,6 +783,8 @@ private:
 	float m_camera_x;
 	float m_camera_y;
 	float m_springness = 1.0f;
+	float m_blend_factor = 0.0f;
+	float m_additive_blend_factor = 0.0f;
 
 	int32_t m_selected_node = -1;
 	std::vector<glm::vec3> m_joint_pos;
