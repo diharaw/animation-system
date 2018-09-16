@@ -72,4 +72,7 @@ struct Animation
 	double						  ticks_per_second;
 };
 
+extern glm::vec3 translation_delta(const glm::vec3& reference, glm::vec3 additive);
+extern glm::vec3 scale_delta(const glm::vec3& reference, glm::vec3 additive);
+extern glm::quat rotation_delta(const glm::quat& reference, glm::quat additive);
 extern std::string trimmed_name(const std::string& name);

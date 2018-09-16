@@ -9,6 +9,7 @@
 #include "anim_sample.h"
 #include "anim_bone_to_local.h"
 #include "anim_blend.h"
+#include "blendspace_1d.h"
 
 // Uniform buffer data structure.
 struct ObjectUniforms
@@ -373,7 +374,7 @@ private:
 
 	bool load_mesh()
 	{
-		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/alain/arnaud.fbx"));
+		m_skeletal_mesh = std::unique_ptr<SkeletalMesh>(SkeletalMesh::load("mesh/Rifle/Rifle_Walk_Fwd.fbx"));
 
 		if (!m_skeletal_mesh)
 		{
@@ -388,7 +389,7 @@ private:
 
 	bool load_animations()
 	{
-		m_walk_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/walk.fbx", m_skeletal_mesh->skeleton()));
+		m_walk_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Rifle_Walk_Fwd.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_walk_animation)
 		{
@@ -396,7 +397,15 @@ private:
 			return false;
 		}
 
-		m_run_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/jog.fbx", m_skeletal_mesh->skeleton()));
+		m_jog_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Rifle_Run_Fwd.fbx", m_skeletal_mesh->skeleton()));
+
+		if (!m_jog_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_run_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Rifle_Sprint_Fwd.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_run_animation)
 		{
@@ -404,7 +413,7 @@ private:
 			return false;
 		}
 
-		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/alain/crackhead.fbx", m_skeletal_mesh->skeleton(), true));
+		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_additive_animation)
 		{
@@ -417,6 +426,14 @@ private:
 		m_additive_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_additive_animation.get());
 		m_bone_to_local = std::make_unique<AnimBoneToLocal>(m_skeletal_mesh->skeleton());
 		m_blend = std::make_unique<AnimBlend>(m_skeletal_mesh->skeleton());
+
+		std::vector<Blendspace1D::Node*> nodes = {
+			new Blendspace1D::Node(m_skeletal_mesh->skeleton(), m_walk_animation.get(), 0.0f),
+			new Blendspace1D::Node(m_skeletal_mesh->skeleton(), m_jog_animation.get(), 50.0f),
+			new Blendspace1D::Node(m_skeletal_mesh->skeleton(), m_run_animation.get(), 100.0f)
+		};
+
+		m_blendspace_1d = std::make_unique<Blendspace1D>(m_skeletal_mesh->skeleton(), nodes);
 
 		return true;
 	}
@@ -576,15 +593,18 @@ private:
 
 	void update_animations()
 	{
-		// Sample
-		Pose* walk_pose = m_walk_sampler->sample(m_delta_seconds);
-		Pose* run_pose = m_run_sampler->sample(m_delta_seconds);
+		//// Sample
+		//Pose* walk_pose = m_walk_sampler->sample(m_delta_seconds);
+		//Pose* run_pose = m_run_sampler->sample(m_delta_seconds);
 		Pose* additive_pose = m_additive_sampler->sample(m_delta_seconds);
 
-		// Blend
-		Pose* blend_pose = m_blend->blend(walk_pose, run_pose, m_blend_factor);
-		Pose* final_pose = m_blend->blend_partial_additive(blend_pose, additive_pose, m_additive_blend_factor, "Spine3");
+		//// Blend
+		//Pose* blend_pose = m_blend->blend(walk_pose, run_pose, m_blend_factor);
+		//Pose* final_pose = m_blend->blend_partial_additive(blend_pose, additive_pose, m_additive_blend_factor, "Spine3");
 		
+		Pose* locomotion_pose = m_blendspace_1d->evaluate(m_delta_seconds);
+		Pose* final_pose = m_blend->blend_partial_additive_with_reference(locomotion_pose, additive_pose, m_additive_blend_factor, "spine_02");
+
 		PoseTransforms* transforms = m_bone_to_local->generate_transforms(final_pose);
 
 		update_bone_uniforms(transforms);
@@ -658,8 +678,13 @@ private:
 		ImGui::SliderFloat("Playback Rate", &rate, 0.1f, 1.0f);
 		m_walk_sampler->set_playback_rate(rate);
 
-		ImGui::SliderFloat("Blend Factor", &m_blend_factor, 0.0f, 1.0f);
-		ImGui::SliderFloat("Additive Factor", &m_additive_blend_factor, 0.0f, 1.0f);
+		float min = m_blendspace_1d->min();
+		float max = m_blendspace_1d->max();
+		float value = m_blendspace_1d->value();
+		ImGui::SliderFloat("Speed", &value, min, max);
+		m_blendspace_1d->set_value(value);
+
+		ImGui::SliderFloat("Additive Weight", &m_additive_blend_factor, 0.0f, 1.0f);
 
 		ImGui::Separator();
 
@@ -750,6 +775,7 @@ private:
 
 	// Animations
 	std::unique_ptr<Animation> m_walk_animation;
+	std::unique_ptr<Animation> m_jog_animation;
 	std::unique_ptr<Animation> m_run_animation;
 	std::unique_ptr<Animation> m_additive_animation;
 	std::unique_ptr<AnimSample> m_walk_sampler;
@@ -757,6 +783,7 @@ private:
 	std::unique_ptr<AnimSample> m_additive_sampler;
 	std::unique_ptr<AnimBoneToLocal> m_bone_to_local;
 	std::unique_ptr<AnimBlend> m_blend;
+	std::unique_ptr<Blendspace1D> m_blendspace_1d;
 
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
