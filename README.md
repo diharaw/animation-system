@@ -6,17 +6,17 @@ An experiment on creating an animation system similar to Unreal Engine 4 from sc
 ## Features
 * Assimp Skeletal Mesh and Animation parsing.
 * Playback.
-* Blending. [TODO]
-* Layers. [TODO]
-* Overriding. [TODO]
-* Additives. [TODO]
-* Inverse Kinematics. [TODO]
-* Blendspaces. [TODO]
+* Blending.
+* Partial Blending.
+* Additives.
+* Blendspaces.
+* Inverse Kinematics. [IN-PROGRESS]
 * State Machines. [TODO]
 
 ## Screenshots
 
-![ASM](data/anim.JPG)
+![ASM](data/anim_1.JPG)
+![ASM](data/anim_2.JPG)
 
 ## Dependencies
 * [dwSampleFramework](https://github.com/diharaw/dwSampleFramework) 

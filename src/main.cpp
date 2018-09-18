@@ -11,6 +11,7 @@
 #include "anim_offset.h"
 #include "anim_blend.h"
 #include "blendspace_1d.h"
+#include "blendspace_2d.h"
 
 // Uniform buffer data structure.
 struct ObjectUniforms
@@ -422,9 +423,73 @@ private:
 			return false;
 		}
 
-		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_lu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
-		if (!m_additive_animation)
+		if (!m_aim_lu_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_cu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_cu_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_ru_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_ru_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_l_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_l_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_c_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_c_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_r_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_r_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_ld_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_ld_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_cd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_cd_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_aim_rd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+
+		if (!m_aim_rd_animation)
 		{
 			DW_LOG_FATAL("Failed to load animation!");
 			return false;
@@ -432,7 +497,7 @@ private:
 
 		m_walk_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_walk_animation.get());
 		m_run_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_run_animation.get());
-		m_additive_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_additive_animation.get());
+		
 		m_local_to_global = std::make_unique<AnimLocalToGlobal>(m_skeletal_mesh->skeleton());
 		m_offset = std::make_unique<AnimOffset>(m_skeletal_mesh->skeleton());
 		m_blend = std::make_unique<AnimBlend>(m_skeletal_mesh->skeleton());
@@ -444,6 +509,29 @@ private:
 		};
 
 		m_blendspace_1d = std::make_unique<Blendspace1D>(m_skeletal_mesh->skeleton(), nodes);
+
+		std::vector<Blendspace2D::Row > rows = {
+		{ -90.0f,{
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_rd_animation.get(), -90.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_cd_animation.get(), 0.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_ld_animation.get(), 90.0f)
+		}
+		},
+		{ 0.0f,{
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_r_animation.get(), -90.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_c_animation.get(), 0.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_l_animation.get(), 90.0f)			
+		}
+		},
+		{ 90.0f,{
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_ru_animation.get(), -90.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_cu_animation.get(), 0.0f),
+			new Blendspace2D::Node(m_skeletal_mesh->skeleton(), m_aim_lu_animation.get(), 90.0f)
+		}
+		},
+		};
+
+		m_blendspace_2d = std::make_unique<Blendspace2D>(m_skeletal_mesh->skeleton(), rows);
 
 		return true;
 	}
@@ -603,17 +691,9 @@ private:
 
 	void update_animations()
 	{
-		//// Sample
-		//Pose* walk_pose = m_walk_sampler->sample(m_delta_seconds);
-		//Pose* run_pose = m_run_sampler->sample(m_delta_seconds);
-		Pose* additive_pose = m_additive_sampler->sample(m_delta_seconds);
-
-		//// Blend
-		//Pose* blend_pose = m_blend->blend(walk_pose, run_pose, m_blend_factor);
-		//Pose* final_pose = m_blend->blend_partial_additive(blend_pose, additive_pose, m_additive_blend_factor, "Spine3");
-		
 		Pose* locomotion_pose = m_blendspace_1d->evaluate(m_delta_seconds);
-		Pose* final_pose = m_blend->blend_partial_additive(locomotion_pose, additive_pose, m_additive_blend_factor, "spine_01");
+		Pose* aim_pose = m_blendspace_2d->evaluate(m_delta_seconds);
+		Pose* final_pose = m_blend->blend_partial_additive(locomotion_pose, aim_pose, m_additive_blend_factor, "spine_01");
 
 		PoseTransforms* global_transforms = m_local_to_global->generate_transforms(final_pose);
 		PoseTransforms* final_transforms = m_offset->offset(global_transforms);
@@ -699,6 +779,11 @@ private:
 		m_blendspace_1d->set_value(value);
 
 		ImGui::SliderFloat("Additive Weight", &m_additive_blend_factor, 0.0f, 1.0f);
+		ImGui::SliderFloat("Pitch", &m_pitch_blend, -90.0f, 90.0f);
+		ImGui::SliderFloat("Yaw", &m_yaw_blend, -90.0f, 90.0f);
+
+		m_blendspace_2d->set_x_value(m_yaw_blend);
+		m_blendspace_2d->set_y_value(m_pitch_blend);
 
 		ImGui::Separator();
 
@@ -792,14 +877,23 @@ private:
 	std::unique_ptr<Animation> m_jog_animation;
 	std::unique_ptr<Animation> m_run_animation;
 	std::unique_ptr<Animation> m_additive_base_animation;
-	std::unique_ptr<Animation> m_additive_animation;
 	std::unique_ptr<AnimSample> m_walk_sampler;
 	std::unique_ptr<AnimSample> m_run_sampler;
-	std::unique_ptr<AnimSample> m_additive_sampler;
 	std::unique_ptr<AnimLocalToGlobal> m_local_to_global;
 	std::unique_ptr<AnimOffset> m_offset;
 	std::unique_ptr<AnimBlend> m_blend;
 	std::unique_ptr<Blendspace1D> m_blendspace_1d;
+
+	std::unique_ptr<Animation> m_aim_lu_animation;
+	std::unique_ptr<Animation> m_aim_cu_animation;
+	std::unique_ptr<Animation> m_aim_ru_animation;
+	std::unique_ptr<Animation> m_aim_l_animation;
+	std::unique_ptr<Animation> m_aim_c_animation;
+	std::unique_ptr<Animation> m_aim_r_animation;
+	std::unique_ptr<Animation> m_aim_ld_animation;
+	std::unique_ptr<Animation> m_aim_cd_animation;
+	std::unique_ptr<Animation> m_aim_rd_animation;
+	std::unique_ptr<Blendspace2D> m_blendspace_2d;
 
 	// Mesh
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
@@ -829,6 +923,8 @@ private:
 	float m_springness = 1.0f;
 	float m_blend_factor = 0.0f;
 	float m_additive_blend_factor = 0.0f;
+	float m_pitch_blend = 0.0f;
+	float m_yaw_blend = 0.0f;
 
 	int32_t m_selected_node = -1;
 	std::vector<glm::vec3> m_joint_pos;
