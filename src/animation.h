@@ -62,7 +62,7 @@ class Skeleton;
 // Contains an array of Channels.
 struct Animation
 {
-	static Animation* load(const std::string& name, Skeleton* skeleton, bool additive = false);
+	static Animation* load(const std::string& name, Skeleton* skeleton, bool additive = false, Animation* additive_reference = nullptr);
 
 	std::string					  name;
 	uint32_t					  keyframe_count;

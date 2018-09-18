@@ -2,13 +2,12 @@
 
 #include "skeletal_mesh.h"
 
-class AnimBoneToLocal
+class AnimLocalToGlobal
 {
 public:
-	AnimBoneToLocal(Skeleton* skeleton);
-	~AnimBoneToLocal();
+	AnimLocalToGlobal(Skeleton* skeleton);
+	~AnimLocalToGlobal();
 	PoseTransforms* generate_transforms(Pose* pose);
-	PoseTransforms* global_transforms();
 	PoseTransforms* local_transforms();
 
 private:

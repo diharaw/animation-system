@@ -1,20 +1,20 @@
-#include "anim_bone_to_local.h"
+#include "anim_local_to_global.h"
 #include <gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <gtx/quaternion.hpp>
 
-AnimBoneToLocal::AnimBoneToLocal(Skeleton* skeleton) : m_skeleton(skeleton)
+AnimLocalToGlobal::AnimLocalToGlobal(Skeleton* skeleton) : m_skeleton(skeleton)
 {
 	for (int i = 0; i < MAX_BONES; i++)
 		m_transforms.transforms[i] = glm::mat4(1.0f);
 }
 
-AnimBoneToLocal::~AnimBoneToLocal()
+AnimLocalToGlobal::~AnimLocalToGlobal()
 {
 
 }
 
-PoseTransforms* AnimBoneToLocal::generate_transforms(Pose* pose)
+PoseTransforms* AnimLocalToGlobal::generate_transforms(Pose* pose)
 {
 	Joint* joints = m_skeleton->joints();
 
@@ -26,24 +26,17 @@ PoseTransforms* AnimBoneToLocal::generate_transforms(Pose* pose)
 			m_global_transforms.transforms[i] = m_local_transforms.transforms[i];
 		else
 			m_global_transforms.transforms[i] = m_global_transforms.transforms[joints[i].parent_index] * m_local_transforms.transforms[i];
-
-		m_transforms.transforms[i] = (m_global_transforms.transforms[i] * joints[i].offset_transform);
 	}
 	
-	return &m_transforms;
-}
-
-PoseTransforms* AnimBoneToLocal::global_transforms()
-{
 	return &m_global_transforms;
 }
 
-PoseTransforms* AnimBoneToLocal::local_transforms()
+PoseTransforms* AnimLocalToGlobal::local_transforms()
 {
 	return &m_local_transforms;
 }
 
-glm::mat4 AnimBoneToLocal::transform_from_keyframe(const Keyframe& keyframe)
+glm::mat4 AnimLocalToGlobal::transform_from_keyframe(const Keyframe& keyframe)
 {
 	glm::mat4 translation = glm::translate(glm::mat4(1.0f), keyframe.translation);
 	glm::mat4 rotation = glm::toMat4(keyframe.rotation);

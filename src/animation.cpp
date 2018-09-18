@@ -20,7 +20,7 @@ glm::quat rotation_delta(const glm::quat& reference, glm::quat additive)
 	return glm::conjugate(reference) * additive;
 }
 
-Animation* Animation::load(const std::string& name, Skeleton* skeleton, bool additive)
+Animation* Animation::load(const std::string& name, Skeleton* skeleton, bool additive, Animation* additive_reference)
 {
 	const aiScene* scene;
 	Assimp::Importer importer;
@@ -66,7 +66,18 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton, bool add
 			glm::vec3 reference_translation;
 
 			if (channel->mNumPositionKeys > 0)
-				reference_translation = glm::vec3(channel->mPositionKeys[0].mValue.x, channel->mPositionKeys[0].mValue.y, channel->mPositionKeys[0].mValue.z);
+			{
+				if (additive_reference)
+				{
+					AnimationChannel& additive_channel = additive_reference->channels[joint_index];
+
+					if (additive_channel.translation_keyframes.size() > 0)
+						reference_translation = additive_channel.translation_keyframes[0].translation;
+				}
+				else
+					reference_translation = glm::vec3(channel->mPositionKeys[0].mValue.x, channel->mPositionKeys[0].mValue.y, channel->mPositionKeys[0].mValue.z);
+			}
+				
 
 			for (int j = 0; j < channel->mNumPositionKeys; j++)
 			{
@@ -87,10 +98,20 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton, bool add
 
 			if (channel->mNumRotationKeys > 0)
 			{
-				reference_rotation = glm::quat(channel->mRotationKeys[0].mValue.w,
-					channel->mRotationKeys[0].mValue.x,
-					channel->mRotationKeys[0].mValue.y,
-					channel->mRotationKeys[0].mValue.z);
+				if (additive_reference)
+				{
+					AnimationChannel& additive_channel = additive_reference->channels[joint_index];
+
+					if (additive_channel.rotation_keyframes.size() > 0)
+						reference_rotation = additive_channel.rotation_keyframes[0].rotation;
+				}
+				else
+				{
+					reference_rotation = glm::quat(channel->mRotationKeys[0].mValue.w,
+						channel->mRotationKeys[0].mValue.x,
+						channel->mRotationKeys[0].mValue.y,
+						channel->mRotationKeys[0].mValue.z);
+				}
 			}
 
 			for (int j = 0; j < channel->mNumRotationKeys; j++)
@@ -112,8 +133,18 @@ Animation* Animation::load(const std::string& name, Skeleton* skeleton, bool add
 			glm::vec3 reference_scale;
 
 			if (channel->mNumScalingKeys > 0)
-				reference_scale = glm::vec3(channel->mScalingKeys[0].mValue.x, channel->mScalingKeys[0].mValue.y, channel->mScalingKeys[0].mValue.z);
+			{
+				if (additive_reference)
+				{
+					AnimationChannel& additive_channel = additive_reference->channels[joint_index];
 
+					if (additive_channel.scale_keyframes.size() > 0)
+						reference_scale = additive_channel.scale_keyframes[0].scale;
+				}
+				else
+					reference_scale = glm::vec3(channel->mScalingKeys[0].mValue.x, channel->mScalingKeys[0].mValue.y, channel->mScalingKeys[0].mValue.z);
+			}
+				
 			for (int j = 0; j < channel->mNumScalingKeys; j++)
 			{
 				output_animation->channels[joint_index].scale_keyframes[j].time = channel->mScalingKeys[j].mTime;

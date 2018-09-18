@@ -7,7 +7,8 @@
 #include <stack>
 #include "skeletal_mesh.h"
 #include "anim_sample.h"
-#include "anim_bone_to_local.h"
+#include "anim_local_to_global.h"
+#include "anim_offset.h"
 #include "anim_blend.h"
 #include "blendspace_1d.h"
 
@@ -413,7 +414,15 @@ private:
 			return false;
 		}
 
-		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton()));
+		m_additive_base_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton()));
+
+		if (!m_additive_base_animation)
+		{
+			DW_LOG_FATAL("Failed to load animation!");
+			return false;
+		}
+
+		m_additive_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_additive_animation)
 		{
@@ -424,7 +433,8 @@ private:
 		m_walk_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_walk_animation.get());
 		m_run_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_run_animation.get());
 		m_additive_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_additive_animation.get());
-		m_bone_to_local = std::make_unique<AnimBoneToLocal>(m_skeletal_mesh->skeleton());
+		m_local_to_global = std::make_unique<AnimLocalToGlobal>(m_skeletal_mesh->skeleton());
+		m_offset = std::make_unique<AnimOffset>(m_skeletal_mesh->skeleton());
 		m_blend = std::make_unique<AnimBlend>(m_skeletal_mesh->skeleton());
 
 		std::vector<Blendspace1D::Node*> nodes = {
@@ -603,12 +613,13 @@ private:
 		//Pose* final_pose = m_blend->blend_partial_additive(blend_pose, additive_pose, m_additive_blend_factor, "Spine3");
 		
 		Pose* locomotion_pose = m_blendspace_1d->evaluate(m_delta_seconds);
-		Pose* final_pose = m_blend->blend_partial_additive_with_reference(locomotion_pose, additive_pose, m_additive_blend_factor, "spine_02");
+		Pose* final_pose = m_blend->blend_partial_additive(locomotion_pose, additive_pose, m_additive_blend_factor, "spine_01");
 
-		PoseTransforms* transforms = m_bone_to_local->generate_transforms(final_pose);
+		PoseTransforms* global_transforms = m_local_to_global->generate_transforms(final_pose);
+		PoseTransforms* final_transforms = m_offset->offset(global_transforms);
 
-		update_bone_uniforms(transforms);
-		update_skeleton_debug(m_skeletal_mesh->skeleton(), m_bone_to_local->global_transforms());
+		update_bone_uniforms(final_transforms);
+		update_skeleton_debug(m_skeletal_mesh->skeleton(), global_transforms);
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
@@ -624,8 +635,10 @@ private:
 			glm::mat4 joint = joints[i].offset_transform;
 			glm::mat4 mat = m_character_transforms.model * transforms->transforms[i];
 
-			glm::vec4 p = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-			m_joint_pos.push_back(glm::vec3(p.x, p.y, p.z));
+			m_joint_pos.push_back(glm::vec3(mat[3][0], mat[3][1], mat[3][2]));
+
+			if (m_visualize_axis)
+				m_debug_draw.transform(mat);
 		}
 	}
 
@@ -673,6 +686,7 @@ private:
 		ImGui::Checkbox("Visualize Mesh", &m_visualize_mesh);
 		ImGui::Checkbox("Visualize Joints", &m_visualize_joints);
 		ImGui::Checkbox("Visualize Bones", &m_visualize_bones);
+		ImGui::Checkbox("Visualize Bone Axis", &m_visualize_axis);
 
 		float rate = m_walk_sampler->playback_rate();
 		ImGui::SliderFloat("Playback Rate", &rate, 0.1f, 1.0f);
@@ -777,11 +791,13 @@ private:
 	std::unique_ptr<Animation> m_walk_animation;
 	std::unique_ptr<Animation> m_jog_animation;
 	std::unique_ptr<Animation> m_run_animation;
+	std::unique_ptr<Animation> m_additive_base_animation;
 	std::unique_ptr<Animation> m_additive_animation;
 	std::unique_ptr<AnimSample> m_walk_sampler;
 	std::unique_ptr<AnimSample> m_run_sampler;
 	std::unique_ptr<AnimSample> m_additive_sampler;
-	std::unique_ptr<AnimBoneToLocal> m_bone_to_local;
+	std::unique_ptr<AnimLocalToGlobal> m_local_to_global;
+	std::unique_ptr<AnimOffset> m_offset;
 	std::unique_ptr<AnimBlend> m_blend;
 	std::unique_ptr<Blendspace1D> m_blendspace_1d;
 
@@ -805,6 +821,7 @@ private:
 	bool m_visualize_mesh = true;
 	bool m_visualize_joints = false;
 	bool m_visualize_bones = false;
+	bool m_visualize_axis = false;
 
 	// Camera orientation.
 	float m_camera_x;
