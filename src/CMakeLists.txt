@@ -4,8 +4,12 @@ set(ASM_HEADERS ${PROJECT_SOURCE_DIR}/src/skeletal_mesh.h
                 ${PROJECT_SOURCE_DIR}/src/animation.h
                 ${PROJECT_SOURCE_DIR}/src/skeleton.h
                 ${PROJECT_SOURCE_DIR}/src/anim_blend.h
-                ${PROJECT_SOURCE_DIR}/src/anim_bone_to_local.h
-                ${PROJECT_SOURCE_DIR}/src/anim_override.h
+                ${PROJECT_SOURCE_DIR}/src/anim_local_to_global.h
+                ${PROJECT_SOURCE_DIR}/src/anim_fabrik_ik.h
+                ${PROJECT_SOURCE_DIR}/src/anim_lookat_ik.h
+                ${PROJECT_SOURCE_DIR}/src/blendspace_1d.h
+                ${PROJECT_SOURCE_DIR}/src/blendspace_2d.h
+                ${PROJECT_SOURCE_DIR}/src/anim_offset.h
                 ${PROJECT_SOURCE_DIR}/src/anim_sample.h)
 
 set(ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/main.cpp
@@ -13,8 +17,12 @@ set(ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/main.cpp
                 ${PROJECT_SOURCE_DIR}/src/animation.cpp
                 ${PROJECT_SOURCE_DIR}/src/skeleton.cpp
                 ${PROJECT_SOURCE_DIR}/src/anim_blend.cpp
-                ${PROJECT_SOURCE_DIR}/src/anim_bone_to_local.cpp
-                ${PROJECT_SOURCE_DIR}/src/anim_override.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_local_to_global.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_fabrik_ik.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_lookat_ik.cpp
+                ${PROJECT_SOURCE_DIR}/src/blendspace_1d.cpp
+                ${PROJECT_SOURCE_DIR}/src/blendspace_2d.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_offset.cpp
                 ${PROJECT_SOURCE_DIR}/src/anim_sample.cpp)
 
 if(APPLE)
