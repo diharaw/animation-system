@@ -39,3 +39,9 @@ build/
 build/*
 lib/
 lib/*
+build_em/*
+build_em/
+mesh/*
+mesh/
+shader/*
+shader/
