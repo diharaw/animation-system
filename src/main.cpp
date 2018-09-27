@@ -415,7 +415,7 @@ private:
 			return false;
 		}
 
-		m_additive_base_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton()));
+		m_additive_base_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton()));
 
 		if (!m_additive_base_animation)
 		{
@@ -423,7 +423,7 @@ private:
 			return false;
 		}
 
-		m_aim_lu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_lu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Left_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_lu_animation)
 		{
@@ -431,7 +431,7 @@ private:
 			return false;
 		}
 
-		m_aim_cu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_cu_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_cu_animation)
 		{
@@ -439,7 +439,7 @@ private:
 			return false;
 		}
 
-		m_aim_ru_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_ru_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Right_Up.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_ru_animation)
 		{
@@ -447,7 +447,7 @@ private:
 			return false;
 		}
 
-		m_aim_l_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_l_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Left.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_l_animation)
 		{
@@ -455,7 +455,7 @@ private:
 			return false;
 		}
 
-		m_aim_c_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_c_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Fwd.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_c_animation)
 		{
@@ -463,7 +463,7 @@ private:
 			return false;
 		}
 
-		m_aim_r_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_r_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Right.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_r_animation)
 		{
@@ -471,7 +471,7 @@ private:
 			return false;
 		}
 
-		m_aim_ld_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Left_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_ld_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Left_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_ld_animation)
 		{
@@ -479,7 +479,7 @@ private:
 			return false;
 		}
 
-		m_aim_cd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_cd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_cd_animation)
 		{
@@ -487,7 +487,7 @@ private:
 			return false;
 		}
 
-		m_aim_rd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/Aim Offsets/Rifle_Aim_Right_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
+		m_aim_rd_animation = std::unique_ptr<Animation>(Animation::load("mesh/Rifle/AimOffsets/Rifle_Aim_Right_Down.fbx", m_skeletal_mesh->skeleton(), true, m_additive_base_animation.get()));
 
 		if (!m_aim_rd_animation)
 		{
