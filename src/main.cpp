@@ -55,9 +55,13 @@ protected:
 		if (!load_mesh())
 			return false;
 
+		DW_LOG_INFO("Loaded Mesh!");
+
 		// Load animations.
 		if (!load_animations())
 			return false;
+
+		DW_LOG_INFO("Loaded Animations!");
 
 		// Create camera.
 		create_camera();
@@ -67,6 +71,8 @@ protected:
 
 		m_index_stack.reserve(256);
 		m_joint_pos.reserve(256);
+
+		DW_LOG_INFO("Loading Done!");
 
 		return true;
 	}
@@ -579,8 +585,12 @@ private:
 		{
 			SubMesh& submesh = mesh->sub_mesh(i);
 
+#if defined(__EMSCRIPTEN__)
+
+#else
 			// Issue draw call.
 			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.num_indices, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * submesh.base_index), submesh.base_vertex);
+#endif
 		}
 	}
     
