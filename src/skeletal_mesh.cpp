@@ -134,7 +134,7 @@ void SkeletalMesh::create_gpu_objects()
 	if (m_has_vertex_colors)
 	{
 		// Create vertex buffer.
-		m_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalColoredVertex) * m_color_vertices.size(), &m_color_vertices[0]);
+		m_vbo = std::make_unique<dw::gl::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalColoredVertex) * m_color_vertices.size(), &m_color_vertices[0]);
 
 		if (!m_vbo)
 			DW_LOG_ERROR("Failed to create Vertex Buffer");
@@ -142,14 +142,14 @@ void SkeletalMesh::create_gpu_objects()
 	else
 	{
 		// Create vertex buffer.
-		m_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalVertex) * m_vertices.size(), &m_vertices[0]);
+		m_vbo = std::make_unique<dw::gl::VertexBuffer>(GL_STATIC_DRAW, sizeof(SkeletalVertex) * m_vertices.size(), &m_vertices[0]);
 
 		if (!m_vbo)
 			DW_LOG_ERROR("Failed to create Index Buffer");
 	}
 
 	// Create index buffer.
-	m_ibo = std::make_unique<dw::IndexBuffer>(GL_STATIC_DRAW, sizeof(uint32_t) * m_indices.size(), &m_indices[0]);
+	m_ibo = std::make_unique<dw::gl::IndexBuffer>(GL_STATIC_DRAW, sizeof(uint32_t) * m_indices.size(), &m_indices[0]);
 
 	if (!m_ibo)
 		DW_LOG_ERROR("Failed to create Index Buffer");
@@ -157,7 +157,7 @@ void SkeletalMesh::create_gpu_objects()
 	if (m_has_vertex_colors)
 	{
 		// Declare vertex attributes.
-		dw::VertexAttrib attribs[] =
+		dw::gl::VertexAttrib attribs[] =
 		{
 			{ 3, GL_FLOAT, false, 0 },
 			{ 2, GL_FLOAT, false, offsetof(SkeletalColoredVertex, texcoord) },
@@ -168,7 +168,7 @@ void SkeletalMesh::create_gpu_objects()
 		};
 
 		// Create vertex array.
-		m_vao = std::make_unique<dw::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalColoredVertex), 6, attribs);
+		m_vao = std::make_unique<dw::gl::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalColoredVertex), 6, attribs);
 
 		if (!m_vao)
 			DW_LOG_ERROR("Failed to create Vertex Array");
@@ -176,7 +176,7 @@ void SkeletalMesh::create_gpu_objects()
 	else
 	{
 		// Declare vertex attributes.
-		dw::VertexAttrib attribs[] =
+		dw::gl::VertexAttrib attribs[] =
 		{
 			{ 3, GL_FLOAT, false, 0 },
 			{ 2, GL_FLOAT, false, offsetof(SkeletalVertex, texcoord) },
@@ -187,7 +187,7 @@ void SkeletalMesh::create_gpu_objects()
 		};
 
 		// Create vertex array.
-		m_vao = std::make_unique<dw::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalVertex), 6, attribs);
+		m_vao = std::make_unique<dw::gl::VertexArray>(m_vbo.get(), m_ibo.get(), sizeof(SkeletalVertex), 6, attribs);
 
 		if (!m_vao)
 			DW_LOG_ERROR("Failed to create Vertex Array");

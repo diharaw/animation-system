@@ -50,3 +50,5 @@ if (APPLE)
 else()
     add_custom_command(TARGET AnimationStateMachine POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/src/shader $<TARGET_FILE_DIR:AnimationStateMachine>/shader)
 endif()
+
+set_property(TARGET AnimationStateMachine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/$(Configuration)")

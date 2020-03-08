@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <application.h>
 #include <mesh.h>
 #include <camera.h>
@@ -205,9 +206,9 @@ protected:
 		settings.maximized = false;
 		settings.refresh_rate = 60;
 		settings.major_ver = 4;
-		settings.width = 1280;
-		settings.height = 720;
-		settings.title = "Animation State Machine Demo";
+		settings.width = 1920;
+		settings.height = 1080;
+		settings.title = "Animation Systems - Dihara Wijetunga";
 
 		return settings;
 	}
@@ -258,7 +259,7 @@ private:
 			{pos[4], normals[7]}, {pos[1], normals[7]} 
 		};
 
-		m_bone_vbo = std::make_unique<dw::VertexBuffer>(GL_STATIC_DRAW, sizeof(BoneVertex) * 24, (BoneVertex*)&bones[0]);
+		m_bone_vbo = std::make_unique<dw::gl::VertexBuffer>(GL_STATIC_DRAW, sizeof(BoneVertex) * 24, (BoneVertex*)&bones[0]);
 
 		if (!m_bone_vbo)
 		{
@@ -266,14 +267,14 @@ private:
 			return false;
 		}
 
-		dw::VertexAttrib attribs[] =
+		dw::gl::VertexAttrib attribs[] =
 		{
 			{ 3, GL_FLOAT, false, 0 },
 			{ 3, GL_FLOAT, false, offsetof(BoneVertex, normal) }
 		};
 
 		// Create vertex array.
-		m_bone_vao = std::make_unique<dw::VertexArray>(m_bone_vbo.get(), nullptr, sizeof(BoneVertex), 2, attribs);
+		m_bone_vao = std::make_unique<dw::gl::VertexArray>(m_bone_vbo.get(), nullptr, sizeof(BoneVertex), 2, attribs);
 
 		if (!m_bone_vao)
 		{
@@ -289,8 +290,8 @@ private:
 	bool create_shaders()
 	{
 		// Create general shaders
-		m_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/vs.glsl"));
-		m_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/fs.glsl"));
+		m_vs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_VERTEX_SHADER, "shader/vs.glsl"));
+		m_fs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/fs.glsl"));
 
 		if (!m_vs || !m_fs)
 		{
@@ -299,8 +300,8 @@ private:
 		}
 
 		// Create general shader program
-        dw::Shader* shaders[] = { m_vs.get(), m_fs.get() };
-        m_program = std::make_unique<dw::Program>(2, shaders);
+        dw::gl::Shader* shaders[] = { m_vs.get(), m_fs.get() };
+        m_program = std::make_unique<dw::gl::Program>(2, shaders);
 
 		if (!m_program)
 		{
@@ -312,8 +313,8 @@ private:
         m_program->uniform_block_binding("u_ObjectUBO", 1);
         
         // Create Animation shaders
-		m_anim_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/skinning_vs.glsl"));
-		m_anim_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/skinning_fs.glsl"));
+		m_anim_vs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_VERTEX_SHADER, "shader/skinning_vs.glsl"));
+		m_anim_fs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/skinning_fs.glsl"));
 
         if (!m_anim_vs || !m_anim_fs)
         {
@@ -322,8 +323,8 @@ private:
         }
         
         // Create Animation shader program
-        dw::Shader* anim_shaders[] = { m_anim_vs.get(), m_anim_fs.get() };
-        m_anim_program = std::make_unique<dw::Program>(2, anim_shaders);
+        dw::gl::Shader* anim_shaders[] = { m_anim_vs.get(), m_anim_fs.get() };
+        m_anim_program = std::make_unique<dw::gl::Program>(2, anim_shaders);
         
         if (!m_anim_program)
         {
@@ -336,8 +337,8 @@ private:
 		m_anim_program->uniform_block_binding("u_BoneUBO", 2);
 
 		// Create Bone shaders
-		m_bone_vs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_VERTEX_SHADER, "shader/bone_vs.glsl"));
-		m_bone_fs = std::unique_ptr<dw::Shader>(dw::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/bone_fs.glsl"));
+		m_bone_vs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_VERTEX_SHADER, "shader/bone_vs.glsl"));
+		m_bone_fs = std::unique_ptr<dw::gl::Shader>(dw::gl::Shader::create_from_file(GL_FRAGMENT_SHADER, "shader/bone_fs.glsl"));
 
 		if (!m_bone_vs || !m_bone_fs)
 		{
@@ -346,8 +347,8 @@ private:
 		}
 
 		// Create Bone shader program
-		dw::Shader* bone_shaders[] = { m_bone_vs.get(), m_bone_fs.get() };
-		m_bone_program = std::make_unique<dw::Program>(2, bone_shaders);
+		dw::gl::Shader* bone_shaders[] = { m_bone_vs.get(), m_bone_fs.get() };
+		m_bone_program = std::make_unique<dw::gl::Program>(2, bone_shaders);
 
 		if (!m_bone_program)
 		{
@@ -367,13 +368,13 @@ private:
 	bool create_uniform_buffer()
 	{
 		// Create uniform buffer for object matrix data
-        m_object_ubo = std::make_unique<dw::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(ObjectUniforms));
+        m_object_ubo = std::make_unique<dw::gl::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(ObjectUniforms));
         
         // Create uniform buffer for global data
-        m_global_ubo = std::make_unique<dw::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(GlobalUniforms));
+        m_global_ubo = std::make_unique<dw::gl::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(GlobalUniforms));
         
         // Create uniform buffer for CSM data
-		m_bone_ubo = std::make_unique<dw::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(PoseTransforms));
+		m_bone_ubo = std::make_unique<dw::gl::UniformBuffer>(GL_DYNAMIC_DRAW, sizeof(PoseTransforms));
 
 		return true;
 	}
@@ -855,22 +856,22 @@ private:
     
 private:
 	// General GPU resources.
-    std::unique_ptr<dw::Shader> m_vs;
-	std::unique_ptr<dw::Shader> m_fs;
-	std::unique_ptr<dw::Program> m_program;
-	std::unique_ptr<dw::UniformBuffer> m_object_ubo;
-    std::unique_ptr<dw::UniformBuffer> m_bone_ubo;
-    std::unique_ptr<dw::UniformBuffer> m_global_ubo;
+    std::unique_ptr<dw::gl::Shader> m_vs;
+	std::unique_ptr<dw::gl::Shader> m_fs;
+	std::unique_ptr<dw::gl::Program> m_program;
+	std::unique_ptr<dw::gl::UniformBuffer> m_object_ubo;
+    std::unique_ptr<dw::gl::UniformBuffer> m_bone_ubo;
+    std::unique_ptr<dw::gl::UniformBuffer> m_global_ubo;
     
     // Animation shaders.
-    std::unique_ptr<dw::Shader> m_anim_vs;
-    std::unique_ptr<dw::Shader> m_anim_fs;
-    std::unique_ptr<dw::Program> m_anim_program;
+    std::unique_ptr<dw::gl::Shader> m_anim_vs;
+    std::unique_ptr<dw::gl::Shader> m_anim_fs;
+    std::unique_ptr<dw::gl::Program> m_anim_program;
 
 	// Bone shaders.
-	std::unique_ptr<dw::Shader> m_bone_vs;
-	std::unique_ptr<dw::Shader> m_bone_fs;
-	std::unique_ptr<dw::Program> m_bone_program;
+	std::unique_ptr<dw::gl::Shader> m_bone_vs;
+	std::unique_ptr<dw::gl::Shader> m_bone_fs;
+	std::unique_ptr<dw::gl::Program> m_bone_program;
 
     // Camera.
     std::unique_ptr<dw::Camera> m_main_camera;
@@ -909,9 +910,9 @@ private:
 	std::unique_ptr<SkeletalMesh> m_skeletal_mesh;
 
 	// Bone Mesh
-	std::unique_ptr<dw::VertexBuffer> m_bone_vbo;
-	std::unique_ptr<dw::IndexBuffer>  m_bone_ibo;
-	std::unique_ptr<dw::VertexArray>  m_bone_vao;
+	std::unique_ptr<dw::gl::VertexBuffer> m_bone_vbo;
+	std::unique_ptr<dw::gl::IndexBuffer>  m_bone_ibo;
+	std::unique_ptr<dw::gl::VertexArray>  m_bone_vao;
 
     // Camera controls.
     bool m_mouse_look = false;
