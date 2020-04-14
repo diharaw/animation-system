@@ -8,11 +8,13 @@
 #include <stack>
 #include "skeletal_mesh.h"
 #include "anim_sample.h"
-#include "anim_local_to_global.h"
+#include "anim_local_transform.h"
+#include "anim_global_transform.h"
 #include "anim_offset.h"
 #include "anim_blend.h"
 #include "blendspace_1d.h"
 #include "blendspace_2d.h"
+#include "anim_fabrik_ik.h"
 
 // Uniform buffer data structure.
 struct ObjectUniforms
@@ -124,6 +126,8 @@ protected:
 		if (m_visualize_bones)
 			visualize_bones(m_skeletal_mesh->skeleton());
         
+		m_debug_draw.sphere(0.1f, m_ik_pos, glm::vec3(1.0f, 1.0f, 0.0f));
+
         // Render debug draw.
         m_debug_draw.render(nullptr, m_width, m_height, m_debug_mode ? m_debug_camera->m_view_projection : m_main_camera->m_view_projection);
 	}
@@ -505,7 +509,9 @@ private:
 		m_walk_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_walk_animation.get());
 		m_run_sampler = std::make_unique<AnimSample>(m_skeletal_mesh->skeleton(), m_run_animation.get());
 		
-		m_local_to_global = std::make_unique<AnimLocalToGlobal>(m_skeletal_mesh->skeleton());
+		m_local_transform = std::make_unique<AnimLocalTransform>(m_skeletal_mesh->skeleton());
+		m_global_transform = std::make_unique<AnimGlobalTransform>(m_skeletal_mesh->skeleton());
+		m_fabrik_ik = std::make_unique<AnimFabrikIK>(m_skeletal_mesh->skeleton());
 		m_offset = std::make_unique<AnimOffset>(m_skeletal_mesh->skeleton());
 		m_blend = std::make_unique<AnimBlend>(m_skeletal_mesh->skeleton());
 
@@ -706,11 +712,24 @@ private:
 		Pose* aim_pose = m_blendspace_2d->evaluate(m_delta_seconds);
 		Pose* final_pose = m_blend->blend_partial_additive(locomotion_pose, aim_pose, m_additive_blend_factor, "spine_01");
 
-		PoseTransforms* global_transforms = m_local_to_global->generate_transforms(final_pose);
-		PoseTransforms* final_transforms = m_offset->offset(global_transforms);
+		PoseTransforms* local_transforms = m_local_transform->generate_transforms(final_pose);
+		PoseTransforms* global_transforms = m_global_transform->generate_transforms(local_transforms);
+
+		if (!m_ik_pos_set)
+		{
+			m_ik_pos_set = true;
+			int32_t hand_idx = m_skeletal_mesh->skeleton()->find_joint_index("hand_l");
+
+			glm::mat4 m = m_character_transforms.model * global_transforms->transforms[hand_idx];
+
+			m_ik_pos = glm::vec3(m[3][0], m[3][1], m[3][2]);
+		}
+		
+		PoseTransforms* ik_transforms = m_fabrik_ik->solve(m_character_transforms.model, local_transforms, global_transforms, m_ik_pos, "clavicle_l", "hand_l");
+		PoseTransforms* final_transforms = m_offset->offset(ik_transforms);
 
 		update_bone_uniforms(final_transforms);
-		update_skeleton_debug(m_skeletal_mesh->skeleton(), global_transforms);
+		update_skeleton_debug(m_skeletal_mesh->skeleton(), ik_transforms);
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------------------------
@@ -778,6 +797,7 @@ private:
 		ImGui::Checkbox("Visualize Joints", &m_visualize_joints);
 		ImGui::Checkbox("Visualize Bones", &m_visualize_bones);
 		ImGui::Checkbox("Visualize Bone Axis", &m_visualize_axis);
+		ImGui::SliderFloat("IK Target", &m_ik_pos.y, 5.0f, 20.0f);
 
 		float rate = m_walk_sampler->playback_rate();
 		ImGui::SliderFloat("Playback Rate", &rate, 0.1f, 1.0f);
@@ -890,7 +910,9 @@ private:
 	std::unique_ptr<Animation> m_additive_base_animation;
 	std::unique_ptr<AnimSample> m_walk_sampler;
 	std::unique_ptr<AnimSample> m_run_sampler;
-	std::unique_ptr<AnimLocalToGlobal> m_local_to_global;
+	std::unique_ptr<AnimLocalTransform> m_local_transform;
+	std::unique_ptr<AnimGlobalTransform> m_global_transform;
+	std::unique_ptr<AnimFabrikIK> m_fabrik_ik;
 	std::unique_ptr<AnimOffset> m_offset;
 	std::unique_ptr<AnimBlend> m_blend;
 	std::unique_ptr<Blendspace1D> m_blendspace_1d;
@@ -940,6 +962,8 @@ private:
 	int32_t m_selected_node = -1;
 	std::vector<glm::vec3> m_joint_pos;
 	std::vector<std::pair<int32_t, bool>> m_index_stack;
+	glm::vec3 m_ik_pos;
+	bool m_ik_pos_set = false;
 };
 
 DW_DECLARE_MAIN(AnimationStateMachine)
