@@ -9,7 +9,8 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 {
 	const aiScene* scene;
 	Assimp::Importer importer;
-	scene = importer.ReadFile(name, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs);
+
+	scene = importer.ReadFile(name, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
 	if (!scene)
 	{
@@ -32,7 +33,7 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 	uint32_t num_vertices = 0;
 	uint32_t num_indices = 0;
 
-	skeletal_mesh->m_has_vertex_colors = false;// scene->mMeshes[0]->HasVertexColors(0);
+	skeletal_mesh->m_has_vertex_colors = false;
 
 	for (int i = 0; i < scene->mNumMeshes; i++)
 	{
@@ -77,9 +78,11 @@ SkeletalMesh* SkeletalMesh::load(const std::string& name, Skeleton* skeleton)
 
 		for (int j = 0; j < scene->mMeshes[i]->mNumFaces; j++)
 		{
-			skeletal_mesh->m_indices.push_back(scene->mMeshes[i]->mFaces[j].mIndices[0]);
-			skeletal_mesh->m_indices.push_back(scene->mMeshes[i]->mFaces[j].mIndices[1]);
-			skeletal_mesh->m_indices.push_back(scene->mMeshes[i]->mFaces[j].mIndices[2]);
+			aiFace& face = scene->mMeshes[i]->mFaces[j];
+
+			skeletal_mesh->m_indices.push_back(face.mIndices[0]);
+			skeletal_mesh->m_indices.push_back(face.mIndices[1]);
+			skeletal_mesh->m_indices.push_back(face.mIndices[2]);
 		}
 	}
 

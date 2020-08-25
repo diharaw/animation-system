@@ -7,7 +7,8 @@ set(ASM_HEADERS ${PROJECT_SOURCE_DIR}/src/skeletal_mesh.h
                 ${PROJECT_SOURCE_DIR}/src/animation.h
                 ${PROJECT_SOURCE_DIR}/src/skeleton.h
                 ${PROJECT_SOURCE_DIR}/src/anim_blend.h
-                ${PROJECT_SOURCE_DIR}/src/anim_local_to_global.h
+                ${PROJECT_SOURCE_DIR}/src/anim_local_transform.h
+                ${PROJECT_SOURCE_DIR}/src/anim_global_transform.h
                 ${PROJECT_SOURCE_DIR}/src/anim_fabrik_ik.h
                 ${PROJECT_SOURCE_DIR}/src/anim_lookat_ik.h
                 ${PROJECT_SOURCE_DIR}/src/blendspace_1d.h
@@ -20,7 +21,8 @@ set(ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/main.cpp
                 ${PROJECT_SOURCE_DIR}/src/animation.cpp
                 ${PROJECT_SOURCE_DIR}/src/skeleton.cpp
                 ${PROJECT_SOURCE_DIR}/src/anim_blend.cpp
-                ${PROJECT_SOURCE_DIR}/src/anim_local_to_global.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_local_transform.cpp
+                ${PROJECT_SOURCE_DIR}/src/anim_global_transform.cpp
                 ${PROJECT_SOURCE_DIR}/src/anim_fabrik_ik.cpp
                 ${PROJECT_SOURCE_DIR}/src/anim_lookat_ik.cpp
                 ${PROJECT_SOURCE_DIR}/src/blendspace_1d.cpp
